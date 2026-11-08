@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "petualangan-nusantara-iren-adit",
+  "main": "src/server/worker.js",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "ROOMS", "class_name": "AdventureRoom" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AdventureRoom"] }],
+  "ratelimits": [
+    { "name": "ROOM_ENTRY_LIMIT", "namespace_id": "72951", "simple": { "limit": 24, "period": 60 } }
+  ]
+}

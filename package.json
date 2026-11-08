@@ -1,0 +1,27 @@
+{
+  "name": "petualangan-nusantara",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "npm run build && wrangler dev --ip 0.0.0.0",
+    "test": "node --test tests/world.test.mjs tests/rooms.test.mjs",
+    "test:browser": "node --test tests/browser.test.mjs",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "@fontsource-variable/fraunces": "5.3.0",
+    "@fontsource-variable/plus-jakarta-sans": "5.3.0",
+    "phaser": "3.90.0"
+  },
+  "devDependencies": {
+    "playwright": "1.58.2",
+    "vite": "7.3.7",
+    "wrangler": "4.158.0",
+    "ws": "8.22.2"
+  }
+}
