@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "Petualangan Nusantara: Iren & Adit",
+  "short_name": "Nusantara",
+  "description": "Petualangan dua pemain bersama Iren dan Adit.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "lang": "id",
+  "background_color": "#193f39",
+  "theme_color": "#193f39",
+  "icons": [
+    { "src": "/art/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/art/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
