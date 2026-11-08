@@ -1,0 +1,29 @@
+# Inventaris aset
+
+| Aset | Lokasi | Sumber atau lisensi |
+| --- | --- | --- |
+| Cuplikan papan cerita Sumatra | `public/art/referensi-sumatra.webp` | Dipotong dari gambar referensi yang disediakan pemilik proyek. Hak pada gambar tetap mengikuti kepemilikannya. |
+| Karakter, penampilan modular, pose, dan animasi | `src/client/avatar.js`, `src/shared/avatar-options.js` | Ilustrasi vektor asli untuk proyek ini, berdasarkan arah visual papan cerita. Setiap pose memakai ulang lapisan kepala, tubuh, pakaian, dan aksesori yang sama. |
+| Latar, peta ilustratif, dan ikon | `public/art/`, `scripts/draw-landscapes.py` | Ilustrasi asli untuk proyek ini. Peta digunakan sebagai ilustrasi rute permainan. |
+| Musik dan efek | `src/client/audio.js` | Melodi, harmoni, ritme, dan efek asli yang disintesis oleh Web Audio. |
+| Phaser 3.90.0 | `package.json`, `package-lock.json` | [MIT](licenses/phaser-MIT.md) |
+| Fraunces | `@fontsource-variable/fraunces` | [SIL Open Font License 1.1](licenses/fraunces-OFL.txt) |
+| Plus Jakarta Sans | `@fontsource-variable/plus-jakarta-sans` | [SIL Open Font License 1.1](licenses/plus-jakarta-sans-OFL.txt) |
+
+## Musik
+
+| Lokasi | Judul dalam game | Arah musikal dan referensi pemilik |
+| --- | --- | --- |
+| Aceh | Angin Seulanga | Nada tiup sintetis dan motif pendek. Arah suasana dari Bungong Jeumpa. |
+| Danau Toba | Riak Danau | Nada petik lembut dan ritme berjalan. Arah suasana dari Sinanggar Tulo. |
+| Minangkabau | Langkah di Lumbung | Bunyi kayu ringan. Arah suasana dari Ayam Den Lapeh. |
+| Jawa | Gema Teras Candi | Lonceng dan nada rendah dengan gema panjang, terinspirasi warna bunyi gamelan. |
+| Kalimantan | Arus Kayu Rimba | Petikan sintetis bernuansa sape. Ampar-Ampar Pisang sebagai acuan suasana. |
+| Sulawesi | Pagi di Lembah | Nada kayu dengan warna kolintang. O Ina Ni Keke sebagai acuan suasana. |
+| Papua | Jejak di Awan | Perkusi sintetis dengan inspirasi warna bunyi tifa. Asal Yamko Rambe Yamko masih diperdebatkan. [Liputan mengenai penelusuran asal lagu](https://news.detik.com/berita/d-5070674/bpnb-papua-belum-ada-literatur-yamko-rambe-yamko-dari-bahasa-mana). |
+| Bali | Senja Saling Menjawab | Motif berbalas yang terinspirasi struktur ritmis Kecak, dengan bunyi instrumental sintetis. |
+| Penutup | Keping Terakhir | Melodi perayaan orisinal untuk adegan senja. |
+
+Komposisi memakai motif baru dan tidak mengambil melodi, rekaman, lirik, atau suara tokoh publik dari sumber eksternal. Efek pendek dihasilkan untuk jawaban benar dan salah, petunjuk, perubahan lokasi, bahaya, lompatan, dan kemenangan. Pemain dapat mengatur musik dan efek secara terpisah atau membisukan keduanya.
+
+Bank soal menyertakan tautan sumber untuk kutipan, konteks meme, dan fakta publik. Kutipan Prabowo memakai frasa yang terdokumentasi di video pidato 2019. Sapaan yang terdengar pada bagian lain dijelaskan di dalam bank soal.
