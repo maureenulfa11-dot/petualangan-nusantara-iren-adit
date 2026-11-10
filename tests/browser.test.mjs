@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { startWorker, waitUntil, delay } from './server.mjs';
 import { BY_ID } from '../src/server/questions.js';
@@ -120,6 +120,81 @@ async function holdTouch(context, page, selector) {
 }
 
 const fullJourney = process.env.NUSANTARA_FULL_BROWSER === '1';
+
+test('approved artwork covers both characters, every action, mirrored movement and existing custom looks', { timeout: 55_000 }, async t => {
+  const base = await startWorker(t);
+  const browser = await chromium.launch(process.env.NUSANTARA_CHROMIUM
+    ? { executablePath: process.env.NUSANTARA_CHROMIUM, args: ['--disable-gpu', '--no-sandbox'] } : {});
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  const modules = {};
+  for (const path of ['client/avatar.js', 'client/avatar-sprites.js', 'shared/avatar-options.js']) {
+    modules['/src/' + path] = await readFile(new URL('../src/' + path, import.meta.url), 'utf8');
+  }
+  await page.route(/\/src\/(client\/avatar(?:-sprites)?|shared\/avatar-options)\.js$/, route =>
+    route.fulfill({ contentType: 'text/javascript', body: modules[new URL(route.request().url()).pathname] }));
+  await page.goto(base);
+  await page.waitForFunction(() => [...document.querySelectorAll('.hero-avatars canvas')].every(canvas =>
+    canvas.width === 320 && canvas.height === 364 && canvas.getContext('2d').getImageData(0, 0, 320, 364).data.some(value => value)));
+  const result = await page.evaluate(async () => {
+    const { drawAvatar } = await import('/src/client/avatar.js');
+    const { spriteArtReady, hasSpriteLook } = await import('/src/client/avatar-sprites.js');
+    const { DEFAULT_AVATAR, SKIN, HEAD, CLOTH, OUTFIT, ACCESSORY } = await import('/src/shared/avatar-options.js');
+    await spriteArtReady;
+    const poses = [
+      ['idle', 0, 0], ['walk', 0, 1], ['walk', 108, 2], ['walk', 216, 3], ['walk', 324, 2],
+      ['run', 0, 6], ['run', 125, 7], ['jump', 0, 4], ['land', 0, 5], ['push', 0, 8],
+      ['lift', 0, 9], ['rope', 0, 10], ['use', 0, 10], ['celebrate', 0, 11], ['correct', 0, 11],
+    ];
+    const actual = document.createElement('canvas');
+    const expected = document.createElement('canvas');
+    actual.width = expected.width = 320;
+    actual.height = expected.height = 364;
+    const ctx = actual.getContext('2d', { willReadFrequently: true });
+    const reference = expected.getContext('2d', { willReadFrequently: true });
+    const failures = [];
+    let checked = 0;
+    for (const role of [0, 1]) {
+      const sheet = new Image();
+      sheet.src = '/art/' + ['iren', 'adit'][role] + '-sprites.webp';
+      await sheet.decode();
+      if (sheet.naturalWidth !== 2304 || sheet.naturalHeight !== 896) failures.push('sheet size ' + role);
+      for (const [pose, ms, frame] of poses) {
+        for (const face of [-1, 1]) {
+          drawAvatar(ctx, DEFAULT_AVATAR[role], role, pose, ms, face);
+          reference.clearRect(0, 0, 320, 364);
+          reference.save();
+          if (face < 0) { reference.translate(320, 0); reference.scale(-1, 1); }
+          reference.drawImage(sheet, frame % 6 * 384, Math.floor(frame / 6) * 448, 384, 448, 4, 0, 312, 364);
+          reference.restore();
+          const pixels = ctx.getImageData(0, 0, 320, 364).data;
+          const wanted = reference.getImageData(0, 0, 320, 364).data;
+          if (!pixels.every((value, i) => value === wanted[i])) failures.push([role, pose, ms, face].join('/'));
+          if (!pixels.some((value, i) => i % 4 === 3 && value > 128)) failures.push('empty ' + pose);
+          checked++;
+        }
+      }
+      const choices = { skin: SKIN, head: HEAD[role], cloth: CLOTH, outfit: OUTFIT, accessory: ACCESSORY };
+      for (const [field, options] of Object.entries(choices)) {
+        for (let choice = 0; choice < options.length; choice++) {
+          const look = { ...DEFAULT_AVATAR[role], [field]: choice };
+          for (const [pose, ms] of poses) {
+            drawAvatar(ctx, look, role, pose, ms);
+            if (!ctx.getImageData(0, 0, 320, 364).data.some((value, i) => i % 4 === 3 && value > 128)) {
+              failures.push('custom ' + [role, field, choice, pose].join('/'));
+            }
+            checked++;
+          }
+        }
+      }
+      if (hasSpriteLook(DEFAULT_AVATAR[role], role, 'leo')) failures.push('ending variation');
+    }
+    return { checked, failures };
+  });
+  assert.ok(result.checked > 700);
+  assert.deepEqual(result.failures, []);
+});
+
 test('two mobile-sized Chromium sessions finish ' + (fullJourney ? 'the six-island adventure' : 'Sumatra') + ' through the player UI', { timeout: fullJourney ? 430_000 : 165_000 }, async t => {
   const base = await startWorker(t);
   const launch = process.env.NUSANTARA_CHROMIUM ? { executablePath: process.env.NUSANTARA_CHROMIUM, args: ['--disable-gpu', '--no-sandbox'] } : {};

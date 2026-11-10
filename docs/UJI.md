@@ -1,5 +1,13 @@
 # Pengujian
 
+## Pemeriksaan branch 10 November 2026
+
+Perbaikan karakter memakai dua lembar sprite yang sudah berada di arsip repository. Build dan empat pengujian server lulus pada Node.js 24.22.1. Renderer diuji terpisah dengan Skia Canvas sementara pada 825 kasus, termasuk seluruh frame berjalan dan berlari, setiap pose aksi, pencerminan arah, dan pilihan kustomisasi yang tersedia. Dua sprite hasil ekstraksi cocok byte demi byte dengan arsip.
+
+Pengujian Chromium belum berjalan pada lingkungan ini. Chromium berhenti saat membuat socket profil, sedangkan unduhan Headless Shell gagal. Pengujian visual otomatis baru ditambahkan ke `tests/browser.test.mjs` dan masih harus dijalankan pada runtime browser yang berfungsi. Hasil Skia belum membuktikan gameplay di browser atau kontrol iPhone. Runner lokal membutuhkan penanganan sementara untuk `os.networkInterfaces()` yang dibatasi lingkungan, di luar berkas produksi dan pengujian repository.
+
+Sprite ilustrasi tersedia untuk penampilan bawaan. Kustomisasi masih memakai rig modular dari arsip proyek. Frame ekspresi khusus berpikir dan salah belum tersedia. Tinjauan visual pemilik tetap diperlukan.
+
 ## Cara mengulang
 
 Siapkan Node.js 22 atau lebih baru. Dari folder proyek jalankan:

@@ -4,10 +4,12 @@ import {
   BRIDGE_SWITCHES, CLUE_HIGH, CLUE_LOW, PATTERN, CLIMB, PADS, TIMERS,
   stageOf, stageQuestionStart, platformsFor, hasPit,
 } from '../shared/chapters.js';
-import { drawAvatar, AVATAR_WIDTH, AVATAR_HEIGHT } from './avatar.js';
+import { drawAvatar, AVATAR_WIDTH, AVATAR_HEIGHT, AVATAR_PIXELS } from './avatar.js';
+import { hasSpriteLook } from './avatar-sprites.js';
 
 const VIEW_W = 960;
 const VIEW_H = 480;
+const HERO_SCALE = .88;
 const PALETTE = {
   cream: 0xffe6ab, gold: 0xf1be66, deep: 0x243d37, brown: 0x704f42, timber: 0xa77854,
   teal: 0x3f8069, fern: 0x8eb36e, light: 0xe7bd83, stone: 0x6e8077,
@@ -36,10 +38,10 @@ class AdventureScene extends Phaser.Scene {
     this.dynamic = this.add.graphics().setDepth(8);
     this.foreground = this.add.graphics().setDepth(16);
     this.hero = [0, 1].map(i => {
-      const canvas = this.textures.createCanvas('hiker-' + i, AVATAR_WIDTH, AVATAR_HEIGHT);
+      const canvas = this.textures.createCanvas('hiker-' + i, AVATAR_WIDTH * AVATAR_PIXELS, AVATAR_HEIGHT * AVATAR_PIXELS);
       return {
         canvas,
-        image: this.add.image(0, 0, canvas.key).setScale(.68).setOrigin(.5, .905).setDepth(12),
+        image: this.add.image(0, 0, canvas.key).setScale(HERO_SCALE / AVATAR_PIXELS).setOrigin(.5, .905).setDepth(12),
         name: this.add.text(0, 0, '', { ...text, fontSize: '14px' }).setOrigin(.5).setDepth(14),
       };
     });
@@ -256,7 +258,8 @@ class AdventureScene extends Phaser.Scene {
       if (!member) continue;
       const fx = Math.abs(x - h.image.x) > 185 ? 1 : smooth;
       h.image.setPosition(Phaser.Math.Linear(h.image.x, x, fx), Phaser.Math.Linear(h.image.y, y, fx));
-      h.name.setText(CAST[member.role] + (slot === self ? ' ◇' : '')).setPosition(h.image.x, h.image.y - 121);
+      h.image.setOrigin(.5, hasSpriteLook(member.avatar, member.role) ? .975 : .905);
+      h.name.setText(CAST[member.role] + (slot === self ? ' ◇' : '')).setPosition(h.image.x, h.image.y - AVATAR_HEIGHT * HERO_SCALE);
       const feedback = world.feedback && Date.now() - world.feedback.at < 1450 && world.feedback.role === slot ? world.feedback : null;
       const expression = feedback ? (feedback.ok ? 'correct' : 'wrong')
         : world.quiz?.role === slot && grounded && pose === 'idle' ? 'think'

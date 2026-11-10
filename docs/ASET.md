@@ -3,14 +3,21 @@
 | Aset | Lokasi | Sumber atau lisensi |
 | --- | --- | --- |
 | Cuplikan papan cerita Sumatra | `public/art/referensi-sumatra.webp` | Dipotong dari gambar referensi yang disediakan pemilik proyek. Hak pada gambar tetap mengikuti kepemilikannya. |
-| Karakter, penampilan modular, pose, dan animasi | `src/client/avatar.js`, `src/shared/avatar-options.js` | Ilustrasi vektor asli untuk proyek ini, berdasarkan arah visual papan cerita. Setiap pose memakai ulang lapisan kepala, tubuh, pakaian, dan aksesori yang sama. |
+| Ilustrasi Iren dan Adit pada penampilan bawaan | `public/art/iren-sprites.webp`, `public/art/adit-sprites.webp`, `src/client/avatar-sprites.js` | Dua lembar 12 frame dari `Iren-Adit-Approved-Art-Source.zip` yang sudah tersedia di repository. Berkas gambar disalin tanpa perubahan. Meliputi diam, berjalan, berlari, melompat, mendarat, mendorong, mengangkat, berinteraksi, dan merayakan. |
+| Penampilan modular dan karakter penutup | `src/client/avatar.js`, `src/shared/avatar-options.js` | Rig vektor berarsir dari arsip proyek yang sama, dirender pada resolusi 2×. Penampilan yang disimpan sebelumnya tetap memakai indeks pilihan semula. |
 | Latar, peta ilustratif, dan ikon | `public/art/`, `scripts/draw-landscapes.py` | Ilustrasi asli untuk proyek ini. Peta digunakan sebagai ilustrasi rute permainan. |
 | Musik dan efek | `src/client/audio.js` | Melodi, harmoni, ritme, dan efek asli yang disintesis oleh Web Audio. |
 | Phaser 3.90.0 | `package.json`, `package-lock.json` | [MIT](licenses/phaser-MIT.md) |
 | Fraunces | `@fontsource-variable/fraunces` | [SIL Open Font License 1.1](licenses/fraunces-OFL.txt) |
 | Plus Jakarta Sans | `@fontsource-variable/plus-jakarta-sans` | [SIL Open Font License 1.1](licenses/plus-jakarta-sans-OFL.txt) |
 
+## Karakter
+
+Pemeriksaan 10 November 2026 menemukan dua sprite bawaan di arsip repository. Arsip ini belum menyediakan sprite untuk setiap kombinasi rambut, hijab, warna kulit, pakaian, dan aksesori. Kombinasi tersebut masih memakai rig modular proyek dan memerlukan tinjauan kesesuaian dengan ilustrasi yang disetujui. Frame khusus berpikir dan ekspresi salah belum tersedia pada lembar sprite bawaan.
+
 ## Musik
+
+Musik aktif masih berasal dari `src/client/audio.js`. Arsip menyertakan referensi YouTube dan komposisi sintetis yang berbeda di `src/client/score.js`. Penggantian musik memerlukan persetujuan pemilik.
 
 | Lokasi | Judul dalam game | Arah musikal dan referensi pemilik |
 | --- | --- | --- |

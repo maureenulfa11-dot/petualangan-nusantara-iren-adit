@@ -8,7 +8,8 @@ import {
 import { SKIN, HEAD, CLOTH, OUTFIT, ACCESSORY, DEFAULT_AVATAR } from '../shared/avatar-options.js';
 import { RoomConnection, errors, normalizedCode, storeRead, storeWrite } from './network.js';
 import { AudioEngine, MUSIC } from './audio.js';
-import { drawAvatar, AVATAR_WIDTH, AVATAR_HEIGHT } from './avatar.js';
+import { drawAvatar, AVATAR_WIDTH, AVATAR_HEIGHT, AVATAR_PIXELS } from './avatar.js';
+import { spriteArtReady } from './avatar-sprites.js';
 
 const $ = selector => document.querySelector(selector);
 const view = $('#screen');
@@ -19,6 +20,7 @@ const ESCAPE = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ESCAPE[char]);
 const btn = (label, action, variant = 'secondary', extra = '') => '<button class="btn ' + variant + '" data-action="' + action + '" ' + extra + '>' + label + '</button>';
 const icon = '<img class="brand-icon" src="/art/icon.svg" alt="">';
+const avatarSize = `width="${AVATAR_WIDTH * AVATAR_PIXELS}" height="${AVATAR_HEIGHT * AVATAR_PIXELS}"`;
 const avatars = structuredClone(storeRead('nusantara-avatars-v1', DEFAULT_AVATAR));
 let preferred = storeRead('nusantara-role-v1', 0) === 1 ? 1 : 0;
 const settings = { music: .6, effects: .75, mute: false, ...storeRead('nusantara-settings-v1', {}) };
@@ -102,8 +104,8 @@ function showHome() {
       <img class="hero-postcard" src="/art/referensi-sumatra.webp" alt="Cuplikan papan cerita Sumatra">
       <div class="art-compass" aria-hidden="true">✧</div>
       <div class="hero-avatars">
-        <canvas width="160" height="182" data-avatar="iren" aria-label="Iren"></canvas>
-        <canvas width="160" height="182" data-avatar="adit" aria-label="Adit"></canvas>
+        <canvas ${avatarSize} data-avatar="iren" aria-label="Iren"></canvas>
+        <canvas ${avatarSize} data-avatar="adit" aria-label="Adit"></canvas>
       </div>
       <span class="hero-bottom">Iren dan Adit · siap berangkat</span>
     </div>
@@ -234,7 +236,7 @@ function updateLobby() {
     const member = i >= 0 ? data.members[i] : null;
     const self = i === data.self;
     return `<article class="player-card role-${role} ${self ? 'is-me' : ''}" data-role="${role}">
-      <canvas width="160" height="182" data-avatar="lobby-${role}" aria-label="${name}"></canvas>
+      <canvas ${avatarSize} data-avatar="lobby-${role}" aria-label="${name}"></canvas>
       <div><p class="overline">${names[role]}</p><h2>${name}</h2>
         <p class="player-status">${member ? (self ? 'Kamu' : 'Sudah dipilih · teman') + ' · ' + (data.online[i] ? (member.ready ? 'Siap' : 'Belum siap') : 'Terputus') : 'Bisa dipilih'}</p>
         ${self ? btn('Ubah Penampilan', 'customize', 'mini', 'data-role="' + role + '"') : member ? '' : btn('Pilih ' + name, 'claim', 'mini', 'data-role="' + role + '"')}
@@ -639,7 +641,7 @@ function renderAvatarDialog() {
     btn('Laki-laki · Adit', 'preview-role', role === 1 ? 'selected' : 'secondary', 'data-role="1"') + '</div>';
   showModal('avatar', `<p class="eyebrow"><span></span> PILIH KARAKTER</p><h2 id="dialog-title">Penampilan ${CAST[role]}</h2>
     ${switchRole}
-    <div class="avatar-workbench"><div class="avatar-preview"><canvas width="160" height="182" data-avatar="draft" aria-label="Pratinjau ${CAST[role]}"></canvas></div>
+    <div class="avatar-workbench"><div class="avatar-preview"><canvas ${avatarSize} data-avatar="draft" aria-label="Pratinjau ${CAST[role]}"></canvas></div>
       <div class="avatar-fields">${avatarSelect('skin', 'Warna kulit', SKIN, a.skin)}${avatarSelect('head', 'Rambut atau hijab', HEAD[role], a.head)}
         ${avatarSelect('cloth', 'Warna pakaian', CLOTH, a.cloth)}${avatarSelect('outfit', 'Pakaian petualang', OUTFIT, a.outfit)}
         ${avatarSelect('accessory', 'Aksesori', ACCESSORY, a.accessory)}</div></div>
@@ -702,7 +704,7 @@ function showEnding() {
   closeModal();
   const ending = ENDING[endingIndex];
   selectScreen('ending', `<section class="ending-frame">
-    <div class="ending-art"><div class="ending-glint">✧</div><div class="ending-cast">${ending.cast.map(name => '<canvas width="160" height="182" data-avatar="' + name + '" aria-label="' + name + '"></canvas>').join('')}</div></div>
+    <div class="ending-art"><div class="ending-glint">✧</div><div class="ending-cast">${ending.cast.map(name => '<canvas ' + avatarSize + ' data-avatar="' + name + '" aria-label="' + name + '"></canvas>').join('')}</div></div>
     <div class="ending-copy"><p class="eyebrow"><span></span> ${ending.tag}</p><h1>${ending.title}</h1>
       <div class="ending-lines">${ending.lines.map(line => '<p>' + line + '</p>').join('')}</div>
       <div class="row" id="ending-actions"></div>
@@ -870,6 +872,11 @@ function animate(ms) {
 if (invite) showEnter(invite);
 else showHome();
 requestAnimationFrame(animate);
+spriteArtReady.then(results => {
+  if (results.some(result => result.status === 'rejected')) {
+    showToast('Ilustrasi karakter belum berhasil dimuat. Muat ulang halaman untuk mencoba lagi.', 'warn', 6000);
+  }
+});
 if ('serviceWorker' in navigator) {
   addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 }
