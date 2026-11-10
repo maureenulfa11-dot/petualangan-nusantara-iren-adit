@@ -17,18 +17,18 @@ Pemeriksaan 10 November 2026 menemukan dua sprite bawaan di arsip repository. Ar
 
 ## Musik
 
-Musik aktif masih berasal dari `src/client/audio.js`. Arsip menyertakan referensi YouTube dan komposisi sintetis yang berbeda di `src/client/score.js`. Penggantian musik memerlukan persetujuan pemilik.
+Musik aktif masih berasal dari `src/client/audio.js`. Arsip menyertakan referensi YouTube dan komposisi sintetis yang berbeda di `src/client/score.js`. Pemeriksaan berkas aktif dan isi arsip belum menemukan rekaman MP3, OGG, WAV, AAC, M4A, atau FLAC untuk lagu referensi. Penggantian musik memerlukan persetujuan pemilik.
 
 | Lokasi | Judul dalam game | Arah musikal dan referensi pemilik |
 | --- | --- | --- |
-| Aceh | Angin Seulanga | Nada tiup sintetis dan motif pendek. Arah suasana dari Bungong Jeumpa. |
-| Danau Toba | Riak Danau | Nada petik lembut dan ritme berjalan. Arah suasana dari Sinanggar Tulo. |
-| Minangkabau | Langkah di Lumbung | Bunyi kayu ringan. Arah suasana dari Ayam Den Lapeh. |
-| Jawa | Gema Teras Candi | Lonceng dan nada rendah dengan gema panjang, terinspirasi warna bunyi gamelan. |
-| Kalimantan | Arus Kayu Rimba | Petikan sintetis bernuansa sape. Ampar-Ampar Pisang sebagai acuan suasana. |
-| Sulawesi | Pagi di Lembah | Nada kayu dengan warna kolintang. O Ina Ni Keke sebagai acuan suasana. |
-| Papua | Jejak di Awan | Perkusi sintetis dengan inspirasi warna bunyi tifa. Asal Yamko Rambe Yamko masih diperdebatkan. [Liputan mengenai penelusuran asal lagu](https://news.detik.com/berita/d-5070674/bpnb-papua-belum-ada-literatur-yamko-rambe-yamko-dari-bahasa-mana). |
-| Bali | Senja Saling Menjawab | Motif berbalas yang terinspirasi struktur ritmis Kecak, dengan bunyi instrumental sintetis. |
+| Aceh | Angin Seulanga | Nada tiup sintetis dan motif pendek. Arah suasana dari Bungong Jeumpa. [Referensi arsip](https://www.youtube.com/watch?v=96VSf0gyt5A) |
+| Danau Toba | Riak Danau | Nada petik lembut dan ritme berjalan. Arah suasana dari Sinanggar Tulo. [Referensi arsip](https://www.youtube.com/watch?v=Sn-sql3k4Bo) |
+| Minangkabau | Langkah di Lumbung | Bunyi kayu ringan. Arah suasana dari Ayam Den Lapeh. [Referensi arsip](https://www.youtube.com/watch?v=vmrJtvj-Geo) |
+| Jawa | Gema Teras Candi | Lonceng dan nada rendah dengan gema panjang, terinspirasi warna bunyi gamelan. [Referensi arsip](https://www.youtube.com/watch?v=BOhLsPZeozw) |
+| Kalimantan | Arus Kayu Rimba | Petikan sintetis bernuansa sape. Ampar-Ampar Pisang sebagai acuan suasana. [Referensi arsip](https://www.youtube.com/watch?v=r9MwAD5-4VQ) |
+| Sulawesi | Pagi di Lembah | Nada kayu dengan warna kolintang. O Ina Ni Keke sebagai acuan suasana. [Referensi arsip](https://www.youtube.com/watch?v=gOMbSd1R9uY) |
+| Papua | Jejak di Awan | Perkusi sintetis dengan inspirasi warna bunyi tifa. Asal Yamko Rambe Yamko masih diperdebatkan. [Referensi arsip](https://www.youtube.com/watch?v=ovbrbW51Wmc) [Liputan mengenai penelusuran asal lagu](https://news.detik.com/berita/d-5070674/bpnb-papua-belum-ada-literatur-yamko-rambe-yamko-dari-bahasa-mana). |
+| Bali | Senja Saling Menjawab | Motif berbalas yang terinspirasi struktur ritmis Kecak, dengan bunyi instrumental sintetis. [Referensi arsip](https://www.youtube.com/watch?v=pOFDAcboxtU) |
 | Penutup | Keping Terakhir | Melodi perayaan orisinal untuk adegan senja. |
 
 Komposisi memakai motif baru dan tidak mengambil melodi, rekaman, lirik, atau suara tokoh publik dari sumber eksternal. Efek pendek dihasilkan untuk jawaban benar dan salah, petunjuk, perubahan lokasi, bahaya, lompatan, dan kemenangan. Pemain dapat mengatur musik dan efek secara terpisah atau membisukan keduanya.

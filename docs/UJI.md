@@ -2,6 +2,17 @@
 
 ## Pemeriksaan branch 10 November 2026
 
+| Pemeriksaan akhir | Hasil |
+| --- | --- |
+| Build produksi | Lulus dengan Vite 7.3.7 pada Node.js 24.22.1. |
+| `npm test` | 7 lulus, 0 gagal, 0 dilewati dalam 16,4 detik. |
+| Renderer karakter pada Skia Canvas | 825 kasus lulus, termasuk pencerminan, frame aksi, dan pilihan kustomisasi. |
+| Simulasi event kontrol pada Node VM | 15 pemeriksaan lulus pada enam skenario dengan elemen tiruan. |
+| Enam pulau, 24 area, 60 soal | Lulus simulasi aturan dunia, dengan 30 giliran per pemain. |
+| Dua sesi pemain | Dua koneksi WebSocket independen lulus sinkronisasi dan pemulihan. |
+| Musik | 24 area memilih tema yang tersedia, termasuk Aceh, Toba, Minangkabau, dan penutup. |
+| Browser end-to-end, Safari, dan iPhone fisik | Terkendala runtime browser. Pemeriksaan ini masih perlu dilakukan. |
+
 Perbaikan karakter memakai dua lembar sprite yang sudah berada di arsip repository. Build dan empat pengujian server lulus pada Node.js 24.22.1. Renderer diuji terpisah dengan Skia Canvas sementara pada 825 kasus, termasuk seluruh frame berjalan dan berlari, setiap pose aksi, pencerminan arah, dan pilihan kustomisasi yang tersedia. Dua sprite hasil ekstraksi cocok byte demi byte dengan arsip.
 
 Pengujian Chromium belum berjalan pada lingkungan ini. Chromium berhenti saat membuat socket profil, sedangkan unduhan Headless Shell gagal. Pengujian visual otomatis baru ditambahkan ke `tests/browser.test.mjs` dan masih harus dijalankan pada runtime browser yang berfungsi. Hasil Skia belum membuktikan gameplay di browser atau kontrol iPhone. Runner lokal membutuhkan penanganan sementara untuk `os.networkInterfaces()` yang dibatasi lingkungan, di luar berkas produksi dan pengujian repository.

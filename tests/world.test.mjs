@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { BY_ID, QUESTIONS, shuffledQuestions } from '../src/server/questions.js';
+import { AudioEngine, MUSIC } from '../src/client/audio.js';
 import { advance, applyInput, assignment, checkpoint, currentTarget, gameCommand, newWorld, pause, publicWorld } from '../src/server/world.js';
 import {
   BRIDGE_SWITCHES, CHAPTERS, CLIMB, CRANK, EXIT, FLOOR, LABELS, PATTERN, PADS, PIT, RAFT_FROM, RAFT_PAD,
@@ -180,6 +181,27 @@ test('60 distinct items, correct category counts and 10 unique server draws per 
   for (const order of draws) assert.equal(new Set(order.split(',')).size, 60);
   assert.deepEqual(CHAPTERS.map(ch => ch.name), ['Sumatra', 'Jawa', 'Kalimantan', 'Sulawesi', 'Papua', 'Bali']);
   for (const ch of CHAPTERS) assert.equal(ch.stages.reduce((n, stage) => n + stage.quizAt.length, 0), 10);
+});
+
+test('all 24 stages select the existing regional music, including three Sumatra themes and the ending', () => {
+  assert.deepEqual(CHAPTERS.map(chapter => [...new Set(chapter.stages.map(stage => stage.theme))]), [
+    ['aceh', 'toba', 'minang'], ['jawa'], ['kalimantan'], ['sulawesi'], ['papua'], ['bali'],
+  ]);
+  const audio = new AudioEngine({ music: .6, effects: .75, mute: false });
+  for (const chapter of CHAPTERS) {
+    for (const stage of chapter.stages) {
+      const [title, beat, base, scale, melody] = MUSIC[stage.theme];
+      assert.ok(title && beat > 0 && Number.isFinite(base));
+      assert.equal(melody.length, 16);
+      assert.ok(melody.every(note => note === null || Number.isInteger(note) && note >= 0 && note < scale.length));
+      audio.change(stage.theme);
+      assert.equal(audio.key, stage.theme);
+    }
+  }
+  audio.change('senja');
+  assert.equal(audio.key, 'senja');
+  audio.change('missing');
+  assert.equal(audio.key, 'senja');
 });
 
 test('two players traverse all six chapters, solve every puzzle type and restore the compass', () => {
