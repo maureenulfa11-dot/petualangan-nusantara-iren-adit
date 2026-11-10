@@ -166,6 +166,7 @@ function receive(packet) {
   }
   if (packet.t !== 'state') return;
   data = packet;
+  if (!packet.online.every(Boolean)) releaseAll(false);
   if (!packet.world) {
     if (screen !== 'lobby') showLobby();
     else updateLobby();
@@ -543,6 +544,7 @@ function releaseAll(send = true) {
   pressed.clear();
   touches.clear();
   previousInput = '';
+  document.querySelectorAll('[data-control].held').forEach(button => button.classList.remove('held'));
   if (send) emitInput(true);
 }
 

@@ -12,6 +12,8 @@ Perbaikan jembatan memulihkan papan dua bagian yang terlihat saat turun dan tera
 
 Enam pengujian server lulus dalam 17,1 detik setelah perbaikan jembatan. Pengujian tambahan memakai dua koneksi WebSocket independen untuk memeriksa progres pengangkatan, penyeberangan, putus koneksi, sambung ulang, penguncian, dan penyeberangan pemain penahan tuas. Simulasi dunia menuntaskan seluruh 24 area, enam pulau dalam urutan yang diminta, 60 soal unik, serta pembagian giliran 30–30.
 
+Kontrol melepas input dan indikator tombol yang tertahan ketika salah satu pemain terputus. Tombol Lari memiliki bidang sentuh minimal 44 × 44 piksel CSS, dan kontrol menonaktifkan menu tekan lama Safari. Enam skenario simulasi event dengan 15 pemeriksaan lulus pada Node VM dengan elemen kontrol tiruan. Skenario mencakup dua jari, pembatalan sentuhan, hilangnya pointer capture, putus koneksi lokal, putus koneksi teman, dan input netral setelah sambung ulang. Build dan enam pengujian server lulus kembali. Pengujian browser ditambah untuk kasus ini, tetapi interaksi sentuh pada browser dan iPhone fisik masih perlu dijalankan.
+
 ## Cara mengulang
 
 Siapkan Node.js 22 atau lebih baru. Dari folder proyek jalankan:

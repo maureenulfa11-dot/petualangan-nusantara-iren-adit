@@ -134,8 +134,11 @@ test('approved artwork covers both characters, every action, mirrored movement a
   await page.route(/\/src\/(client\/avatar(?:-sprites)?|shared\/avatar-options)\.js$/, route =>
     route.fulfill({ contentType: 'text/javascript', body: modules[new URL(route.request().url()).pathname] }));
   await page.goto(base);
-  await page.waitForFunction(() => [...document.querySelectorAll('.hero-avatars canvas')].every(canvas =>
-    canvas.width === 320 && canvas.height === 364 && canvas.getContext('2d').getImageData(0, 0, 320, 364).data.some(value => value)));
+  await page.waitForFunction(() => {
+    const canvases = [...document.querySelectorAll('.hero-avatars canvas')];
+    return canvases.length === 2 && canvases.every(canvas => canvas.width === 320 && canvas.height === 364
+      && canvas.getContext('2d').getImageData(0, 0, 320, 364).data.some(value => value));
+  });
   const result = await page.evaluate(async () => {
     const { drawAvatar } = await import('/src/client/avatar.js');
     const { spriteArtReady, hasSpriteLook } = await import('/src/client/avatar-sprites.js');
@@ -250,6 +253,38 @@ test('two mobile-sized Chromium sessions finish ' + (fullJourney ? 'the six-isla
   await stopJump();
   await waitUntil(() => b.motion.players[0][1] < 380, 'touch jump visible to remote');
   await waitUntil(a.grounded, 'touch jump lands');
+  for (const peer of peers) {
+    for (const button of await peer.page.locator('.game-controls button').all()) {
+      const box = await button.boundingBox();
+      assert.ok(box.width >= 44 && box.height >= 44, 'touch targets are at least 44 CSS pixels');
+    }
+  }
+  const touch = await contexts[0].newCDPSession(a.page);
+  const points = await Promise.all(['right', 'jump'].map(async (control, i) => {
+    const box = await a.page.locator('[data-control="' + control + '"]').boundingBox();
+    return { id: i + 1, x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  }));
+  const beforeTouch = a.x();
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: points });
+  await waitUntil(() => b.motion.players[0][0] > beforeTouch + 12 && b.motion.players[0][1] < 380, 'two-finger movement and jump sync');
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+  await touch.detach();
+  await a.page.waitForFunction(() => document.querySelectorAll('[data-control].held').length === 0);
+  await waitUntil(a.grounded, 'cancelled touch jump lands');
+
+  const releaseMove = await holdTouch(contexts[0], a.page, '[data-control="right"]');
+  await a.page.locator('[data-control="right"].held').waitFor();
+  await b.page.goto('about:blank');
+  await waitUntil(() => a.state.online[1] === false, 'peer navigation pauses controls');
+  assert.equal(await a.page.locator('[data-control].held').count(), 0);
+  await releaseMove();
+  await b.page.goto(invite);
+  await b.page.getByRole('button', { name: 'Gabung Room', exact: true }).click();
+  await waitUntil(() => peers.every(peer => peer.state.online.every(Boolean)), 'touch interruption reconnects');
+  await waitUntil(a.grounded, 'resumed player lands');
+  const resting = a.x();
+  await delay(350);
+  assert.equal(a.x(), resting, 'old touch movement does not resume after reconnection');
   await trivia(peers, 312, { wrong: true });
   await bothAt(peers, 445, 467);
   await a.page.keyboard.down('E');
