@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { BY_ID, QUESTIONS, shuffledQuestions } from '../src/server/questions.js';
-import { advance, applyInput, assignment, checkpoint, currentTarget, gameCommand, newWorld, publicWorld } from '../src/server/world.js';
+import { advance, applyInput, assignment, checkpoint, currentTarget, gameCommand, newWorld, pause, publicWorld } from '../src/server/world.js';
 import {
-  CHAPTERS, CLIMB, CRANK, EXIT, FLOOR, LABELS, PATTERN, PADS, RAFT_FROM, RAFT_PAD,
+  BRIDGE_SWITCHES, CHAPTERS, CLIMB, CRANK, EXIT, FLOOR, LABELS, PATTERN, PADS, PIT, RAFT_FROM, RAFT_PAD,
   SYMBOLS, TIMERS, stageOf,
 } from '../src/shared/chapters.js';
 
@@ -92,6 +92,7 @@ class Pair {
       this.move(0, 445);
       this.move(1, 468);
       this.set(0, { use: true });
+      this.tick(750);
       this.move(1, 871);
       this.tap(1);
       this.set(0, {});
@@ -228,11 +229,59 @@ test('checkpoints keep earned items and clear temporary actions', () => {
   pair.trivia();
   pair.move(0, 445);
   pair.set(0, { use: true });
-  pair.tick(100);
+  pair.tick(750);
   assert.equal(pair.world.puzzle.bridge, true);
   const saved = checkpoint(pair.world);
   assert.equal(saved.q, 1);
   assert.equal(saved.puzzle.bridge, false);
   assert.ok(saved.players.every(player => !player.input.use && player.vx === 0));
   assert.equal(saved.order.length, 60);
+});
+
+test('a bridge rises before trivia, requires two players, and survives interruption and checkpoint restore', () => {
+  const pair = new Pair();
+  const { world } = pair;
+  const [lever, latch] = BRIDGE_SWITCHES;
+  assert.ok(world.players.every(p => p.x < PIT[0] && p.grounded));
+  pair.move(0, lever);
+  pair.move(1, PIT[0] - 15);
+  pair.set(1, { dir: 1 });
+  pair.tick(190);
+  assert.ok(world.players[1].y > FLOOR, 'no invisible crossing when the planks are down');
+  pair.set(1, {});
+  pair.tick(600);
+  assert.ok(world.players[1].x < PIT[0] && world.players[1].grounded, 'fall restores the near-bank checkpoint');
+  assert.equal(world.notice.kind, 'danger');
+
+  pair.set(0, { use: true });
+  pair.tick(220);
+  assert.ok(world.puzzle.meter > 0 && world.puzzle.meter < 1);
+  assert.equal(world.puzzle.bridge, false);
+  pair.tick(550);
+  assert.equal(world.q, 0);
+  assert.equal(world.puzzle.bridge, true);
+  pair.move(1, (PIT[0] + PIT[1]) / 2);
+  pause(world, pair.t);
+  pair.set(0, {});
+  assert.equal(world.puzzle.bridge, false);
+  assert.equal(world.puzzle.meter, 0);
+  assert.ok(world.players[1].x < PIT[0]);
+
+  pair.set(0, { use: true });
+  pair.tick(750);
+  pair.move(1, latch);
+  pair.set(0, {});
+  pair.tap(1);
+  assert.equal(world.puzzle.done, false, 'far latch needs the other player holding the lever');
+  pair.set(0, { use: true });
+  pair.tick(750);
+  pair.tap(1);
+  assert.equal(world.puzzle.done, true);
+  pair.set(0, {});
+  pair.move(0, latch + 40);
+  const saved = checkpoint(world);
+  pause(saved, pair.t);
+  assert.equal(saved.puzzle.bridge, true);
+  assert.equal(saved.puzzle.meter, 1);
+  assert.ok(saved.players.every(p => p.x >= PIT[1] && p.grounded));
 });

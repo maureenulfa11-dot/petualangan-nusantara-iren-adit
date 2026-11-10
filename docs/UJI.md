@@ -8,6 +8,10 @@ Pengujian Chromium belum berjalan pada lingkungan ini. Chromium berhenti saat me
 
 Sprite ilustrasi tersedia untuk penampilan bawaan. Kustomisasi masih memakai rig modular dari arsip proyek. Frame ekspresi khusus berpikir dan salah belum tersedia. Tinjauan visual pemilik tetap diperlukan.
 
+Perbaikan jembatan memulihkan papan dua bagian yang terlihat saat turun dan terangkat mengikuti meter server. Tuas dapat dioperasikan sebelum trivia pertama. Kedua pemain harus menahan tuas dan mengunci dari sisi berbeda. Jika koneksi terputus saat menyeberang, pemain kembali ke tepi yang aman. Jembatan yang telah terkunci dipertahankan saat pemulihan checkpoint.
+
+Enam pengujian server lulus dalam 17,1 detik setelah perbaikan jembatan. Pengujian tambahan memakai dua koneksi WebSocket independen untuk memeriksa progres pengangkatan, penyeberangan, putus koneksi, sambung ulang, penguncian, dan penyeberangan pemain penahan tuas. Simulasi dunia menuntaskan seluruh 24 area, enam pulau dalam urutan yang diminta, 60 soal unik, serta pembagian giliran 30–30.
+
 ## Cara mengulang
 
 Siapkan Node.js 22 atau lebih baru. Dari folder proyek jalankan:

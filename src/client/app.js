@@ -2,7 +2,7 @@ import '@fontsource-variable/fraunces';
 import '@fontsource-variable/plus-jakarta-sans';
 import './style.css';
 import {
-  CHAPTERS, CAST, LABELS, EXIT, FLOOR, CRANK, BRIDGE_SWITCHES, PADS, RAFT_PAD,
+  CHAPTERS, CAST, LABELS, EXIT, FLOOR, PIT, CRANK, BRIDGE_SWITCHES, BRIDGE_REACH, PADS, RAFT_PAD,
   CLUE_HIGH, CLUE_LOW, PATTERN, SYMBOLS, TIMERS, CLIMB, stageOf, stageQuestionStart, within,
 } from '../shared/chapters.js';
 import { SKIN, HEAD, CLOTH, OUTFIT, ACCESSORY, DEFAULT_AVATAR } from '../shared/avatar-options.js';
@@ -297,12 +297,27 @@ function objectiveFor(world) {
   const target = stage.quizAt[world.q - start];
   const slot = data.self;
   const cast = i => CAST[data.members[i].role];
+  if (stage.mode === 'bridge') {
+    const { bridge, pad, meter } = data.motion;
+    if (!world.puzzle.done) {
+      if (pad[slot]) return bridge ? 'Tahan Aksi. ' + cast(1 - slot) + ' menyeberang dan mengunci papan.'
+        : 'Tetap tahan Aksi. Papan terangkat ' + meter + '%.';
+      if (bridge) return 'Papan sudah rata. Seberang dan tekan Aksi di pengunci kanan.';
+      if (pad[1 - slot]) return 'Tunggu papan rata sebelum menyeberang.';
+      if (localPosition()?.x >= PIT[1]) return 'Tunggu temanmu menahan tuas, lalu tekan Aksi di pengunci.';
+      if (world.q === start && localPosition()?.x < BRIDGE_SWITCHES[0] - BRIDGE_REACH) {
+        return 'Jawab lentera di jalur kiri. Di tepi sungai, satu pemain tahan Aksi pada tuas kayu.';
+      }
+      return 'Satu pemain berdiri di lingkaran tuas kayu dan tahan Aksi. Temannya menunggu di tepi.';
+    }
+    if (target !== undefined) return 'Jembatan terkunci. ' + cast(world.q % 2) + ' jawab lentera ' + (target < PIT[0] ? 'di tepi kiri.' : 'berikutnya di tepi kanan.');
+    return 'Jembatan terkunci. Bertemu di pos sebelah kanan, lalu tekan Aksi untuk lanjut.';
+  }
   if (target !== undefined && world.q === start) {
     if (stage.support) return cast(world.q % 2) + ' dekati lentera. ' + cast(1 - world.q % 2) + ' tahan Aksi di tuas.';
     return 'Dekati lentera pertama dan tekan Aksi. ' + cast(world.q % 2) + ' menjawab.';
   }
   if (!world.puzzle.done) {
-    if (stage.mode === 'bridge') return 'Tahan Aksi di tuas kiri. Temanmu menyeberang dan menekan Aksi di pengunci kanan.';
     if (stage.mode === 'raft') return 'Naik ke rakit, berdiri di dua dayung, lalu tahan Aksi bersama.';
     if (stage.mode === 'cable') return 'Naik ke gondola, pilih satu katrol per pemain, lalu tahan Aksi bersama.';
     if (stage.mode === 'clues') {
@@ -412,7 +427,10 @@ function tipFor(world, p) {
   const target = stage.quizAt[world.q - start];
   if (target !== undefined && within(p, target, FLOOR, 58)) return '✦ Tekan Aksi di lentera';
   if (stage.support && world.q === start && within(p, CRANK, FLOOR, 37)) return 'Tahan Aksi di tuas';
-  if (stage.mode === 'bridge' && !world.puzzle.done && BRIDGE_SWITCHES.some(x => within(p, x, FLOOR, 54))) return 'Gunakan tuas jembatan';
+  if (stage.mode === 'bridge' && !world.puzzle.done && p.grounded) {
+    if (within(p, BRIDGE_SWITCHES[0], FLOOR, BRIDGE_REACH)) return '① Tahan Aksi di tuas';
+    if (within(p, BRIDGE_SWITCHES[1], FLOOR, BRIDGE_REACH)) return data.motion.bridge ? '② Tekan Aksi untuk mengunci' : '② Tunggu papan terangkat';
+  }
   if (['raft', 'cable'].includes(stage.mode) && !world.puzzle.done && [-1, 1].some(side => within(p, data.motion.raftX + side * RAFT_PAD, FLOOR, 33))) return 'Tahan Aksi bersama';
   if (['lift', 'push', 'rope'].includes(stage.mode) && !world.puzzle.done && PADS.some(x => within(p, x, FLOOR, 27))) return 'Tahan Aksi bersama';
   if (stage.mode === 'timing' && !world.puzzle.done && TIMERS.some(([x, y]) => within(p, x, y, 50))) return 'Siap? Tekan serempak!';
@@ -425,6 +443,7 @@ function tipFor(world, p) {
 function updateMotionUI() {
   if (screen !== 'play' || !data?.world || !data.motion) return;
   const { world, motion, online, self } = data;
+  if (stageOf(world).mode === 'bridge') $('#objective').textContent = objectiveFor(world);
   const status = $('#game-status');
   const tip = $('#control-tip');
   const offline = connState !== 'open' || !online.every(Boolean);

@@ -1,5 +1,5 @@
 import {
-  CHAPTERS, FLOOR, WIDTH, PIT, EXIT, CRANK, BRIDGE_SWITCHES, RAFT_FROM, RAFT_TO, RAFT_HALF, RAFT_PAD,
+  CHAPTERS, FLOOR, WIDTH, PIT, EXIT, CRANK, BRIDGE_SWITCHES, BRIDGE_REACH, RAFT_FROM, RAFT_TO, RAFT_HALF, RAFT_PAD,
   CLUE_HIGH, CLUE_LOW, CLIMB, PATTERN, PADS, TIMERS, SYMBOLS, stageOf, stageQuestionStart, within,
   hasPit, platformsFor,
 } from '../shared/chapters.js';
@@ -11,6 +11,8 @@ const GRAVITY = 1160;
 const clamp = (v, min, max) => Math.max(min, Math.min(v, max));
 const isPair = list => list[0] && list[1];
 const respawnX = [112, 161];
+const overRiver = x => x > PIT[0] && x < PIT[1];
+const bridgeRespawn = slot => BRIDGE_SWITCHES[0] - 32 - slot * 24;
 
 function position(x) {
   return { x, y: FLOOR, vx: 0, vy: 0, face: 1, grounded: true, pose: 'idle', input: STOP, expires: 0, land: 0 };
@@ -54,12 +56,12 @@ export function checkpoint(world) {
   delete saved.persist;
   saved.puzzle.pad = [false, false];
   saved.puzzle.taps = [0, 0];
-  saved.puzzle.meter = 0;
-  if (stageOf(saved).mode === 'bridge') saved.puzzle.bridge = saved.puzzle.done;
+  const stage = stageOf(saved);
+  saved.puzzle.meter = Number(stage.mode === 'bridge' && saved.puzzle.done);
+  if (stage.mode === 'bridge') saved.puzzle.bridge = saved.puzzle.done;
   saved.players = saved.players.map((p, i) => {
-    const stage = stageOf(saved);
-    if (hasPit(stage) && p.x > PIT[0] && p.x < PIT[1] && !saved.puzzle.bridge) {
-      if (stage.mode === 'bridge') return position(respawnX[i]);
+    if (hasPit(stage) && overRiver(p.x) && !saved.puzzle.bridge) {
+      if (stage.mode === 'bridge') return position(bridgeRespawn(i));
       if (saved.puzzle.done) return position(RAFT_TO + RAFT_PAD * (i === 0 ? -1 : 1));
       return position(saved.puzzle.raftX + RAFT_PAD * (i === 0 ? -1 : 1));
     }
@@ -83,8 +85,14 @@ export function pause(world, now) {
   }
   world.puzzle.pad = [false, false];
   world.puzzle.taps = [0, 0];
-  world.puzzle.meter = 0;
-  if (stageOf(world).mode === 'bridge') world.puzzle.bridge = world.puzzle.done;
+  const bridge = stageOf(world).mode === 'bridge';
+  world.puzzle.meter = Number(bridge && world.puzzle.done);
+  if (bridge) {
+    world.puzzle.bridge = world.puzzle.done;
+    if (!world.puzzle.done) world.players.forEach((p, slot) => {
+      if (overRiver(p.x)) Object.assign(p, position(bridgeRespawn(slot)));
+    });
+  }
 }
 
 function done(world, now, text = 'Berhasil! Jalan terbuka.') {
@@ -120,14 +128,26 @@ function occupiedPair(players, points) {
   };
 }
 
+function updateBridge(world, dt, now) {
+  const { players, puzzle } = world;
+  if (puzzle.done) return;
+  const [lever, latch] = BRIDGE_SWITCHES;
+  const holders = players.map(player => useNear(player, lever, FLOOR, BRIDGE_REACH));
+  const lifting = holders.some(Boolean);
+  puzzle.pad = holders;
+  puzzle.meter = clamp(puzzle.meter + dt * (lifting ? 1.4 : -1.8), 0, 1);
+  puzzle.bridge = lifting && puzzle.meter === 1;
+  if (puzzle.bridge && players.some((player, slot) => holders[1 - slot] && useNear(player, latch, FLOOR, BRIDGE_REACH))) {
+    puzzle.pad = [false, false];
+    done(world, now, 'Jembatan terkunci! Lepas tuas dan susul temanmu.');
+  }
+}
+
 function mechanism(world, stage, dt, now) {
   const { players, puzzle } = world;
+  if (stage.mode === 'bridge') return updateBridge(world, dt, now);
   const calibrated = world.q > stageQuestionStart(world);
   const questionsDone = currentTarget(world) === undefined;
-  if (stage.mode === 'bridge') {
-    puzzle.pad = players.map(p => calibrated && useNear(p, BRIDGE_SWITCHES[0]));
-    puzzle.bridge = puzzle.done || puzzle.pad.some(Boolean);
-  }
   if (puzzle.done) return;
   if (stage.mode === 'raft' || stage.mode === 'cable') {
     const { pad, both } = occupiedPair(players, [-1, 1].map(side => [puzzle.raftX + side * RAFT_PAD, FLOOR, 29]));
@@ -172,7 +192,7 @@ function terrain(world, stage, p, slot, dt, now) {
   p.vy += GRAVITY * dt;
   p.y += p.vy * dt;
   const floors = platformsFor(stage).filter(([left, right]) => p.x >= left && p.x <= right).map(([, , y]) => y);
-  const openGap = hasPit(stage) && p.x > PIT[0] && p.x < PIT[1] && !pzl.bridge;
+  const openGap = hasPit(stage) && overRiver(p.x) && !pzl.bridge;
   const onRaft = ['raft', 'cable'].includes(stage.mode) && Math.abs(p.x - pzl.raftX) <= RAFT_HALF;
   if (!openGap || onRaft) floors.push(FLOOR);
   if (p.vy >= 0) {
@@ -185,10 +205,11 @@ function terrain(world, stage, p, slot, dt, now) {
     }
   }
   if (p.y > 520) {
-    let x = respawnX[slot];
+    let x = stage.mode === 'bridge' ? bridgeRespawn(slot) : respawnX[slot];
     if (['raft', 'cable'].includes(stage.mode)) x = pzl.raftX + RAFT_PAD * (slot === 0 ? -1 : 1);
     Object.assign(p, position(x), { pose: 'surprise' });
     notice(world, now, 'Byur! Kembali ke pijakan aman.', 'danger');
+    world.notice.slot = slot;
     return;
   }
   if (!p.grounded) p.pose = 'jump';
@@ -235,6 +256,7 @@ export function applyInput(world, slot, message, now) {
     p.pose = 'jump';
   }
   if (p.input.use && !previous.use) interact(world, slot, now);
+  if (stageOf(world).mode === 'bridge') updateBridge(world, 0, now);
 }
 
 function openQuiz(world, slot, now) {
@@ -263,8 +285,8 @@ function interact(world, slot, now) {
   if (openQuiz(world, slot, now)) return;
 
   const [high, low] = assignment(world);
-  if (!puzzle.done && mode === 'bridge' && puzzle.bridge && within(p, BRIDGE_SWITCHES[1], FLOOR, 55)) {
-    done(world, now, 'Pengunci terpasang! Temanmu sekarang bisa menyeberang.');
+  if (!puzzle.done && mode === 'bridge' && within(p, BRIDGE_SWITCHES[1], FLOOR, BRIDGE_REACH)) {
+    if (!puzzle.bridge) notice(world, now, 'Tunggu temanmu mengangkat papan dari tuas kiri.');
     return;
   }
   if (!puzzle.done && mode === 'clues') {
@@ -397,7 +419,7 @@ export function publicMotion(world) {
   const { puzzle } = world;
   return {
     players: world.players.map(p => [Math.round(p.x), Math.round(p.y), Math.round(p.vx), p.face, p.pose, p.grounded]),
-    bridge: puzzle.bridge, raftX: Math.round(puzzle.raftX), meter: Math.round(puzzle.meter * 100), pad: puzzle.pad,
+    bridge: puzzle.bridge, raftX: Math.round(puzzle.raftX), meter: Math.floor(puzzle.meter * 100), pad: puzzle.pad,
   };
 }
 

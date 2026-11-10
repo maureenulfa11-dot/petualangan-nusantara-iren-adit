@@ -4,6 +4,7 @@ export const PIT = [500, 820];
 export const EXIT = 1415;
 export const CRANK = 365;
 export const BRIDGE_SWITCHES = [445, 872];
+export const BRIDGE_REACH = 52;
 export const RAFT_FROM = 495;
 export const RAFT_TO = 835;
 export const RAFT_HALF = 96;

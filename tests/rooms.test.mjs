@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import WebSocket from 'ws';
 import { launchWorker, startWorker, waitUntil, delay } from './server.mjs';
 import { BY_ID } from '../src/server/questions.js';
+import { BRIDGE_SWITCHES, FLOOR, PIT } from '../src/shared/chapters.js';
 
 function connect(base, membership, origin = base) {
   const url = base.replace(/^http/, 'ws') + '/api/rooms/' + membership.code + '/socket';
@@ -145,4 +146,67 @@ test('local Cloudflare runtime authenticates two isolated connections, syncs inp
     assert.equal(restored.state.world.run, run);
     assert.equal(restored.state.members[0].avatar.skin, 4);
   }
+});
+
+test('two WebSocket players raise, interrupt, reconnect and lock the Aceh bridge before trivia', { timeout: 65_000 }, async t => {
+  const base = await startWorker(t);
+  const hostRoom = await api(base, '/api/rooms');
+  const guestRoom = await api(base, '/api/rooms/' + hostRoom.code + '/join');
+  const peers = [connect(base, hostRoom), connect(base, guestRoom)];
+  const sockets = [...peers];
+  t.after(() => sockets.forEach(peer => peer.ws.terminate()));
+  await waitUntil(() => peers.every(peer => peer.state?.online.every(Boolean)), 'both players online');
+  peers.forEach(peer => peer.send({ t: 'ready', value: true }));
+  await waitUntil(() => peers.every(peer => peer.state.members.every(member => member.ready)), 'both ready');
+  peers[0].send({ t: 'start' });
+  await waitUntil(() => peers.every(peer => peer.state.world?.phase === 'play'), 'Aceh starts');
+
+  const controls = [{}, {}];
+  const pulse = setInterval(() => peers.forEach((peer, slot) => {
+    if (peer.ws.readyState === WebSocket.OPEN) peer.send({ t: 'input', ...controls[slot] });
+  }), 95);
+  t.after(() => clearInterval(pulse));
+  const set = (slot, input) => {
+    controls[slot] = input;
+    peers[slot].send({ t: 'input', ...input });
+  };
+  const move = async (slot, target) => {
+    const direction = Math.sign(target - peers[slot].motion.players[slot][0]);
+    set(slot, { dir: direction, run: true });
+    try {
+      await waitUntil(() => direction * (target - peers[slot].motion.players[slot][0]) <= 14, 'move to ' + target, 6500);
+    } finally {
+      set(slot, {});
+    }
+    await waitUntil(() => peers[slot].motion.players[slot][5], 'land at ' + target);
+  };
+
+  await Promise.all([move(0, BRIDGE_SWITCHES[0]), move(1, PIT[0] - 24)]);
+  set(0, { use: true });
+  await waitUntil(() => peers.every(peer => peer.motion.meter > 0 && peer.motion.meter < 100), 'shared raising progress');
+  await waitUntil(() => peers.every(peer => peer.motion.bridge && peer.motion.meter === 100), 'both see the raised bridge');
+  assert.equal(peers[0].state.world.q, 0, 'the lever works before the first answer');
+  await move(1, (PIT[0] + PIT[1]) / 2);
+  peers[1].ws.close(1000);
+  controls[0] = {};
+  await waitUntil(() => peers[0].state.online[1] === false, 'disconnect pauses the bridge');
+  assert.equal(peers[0].motion.bridge, false);
+  assert.equal(peers[0].motion.meter, 0);
+  assert.ok(peers[0].motion.players[1][0] < PIT[0], 'the crossing player returns to the safe bank');
+  assert.equal(peers[0].motion.players[1][1], FLOOR);
+
+  peers[1] = connect(base, guestRoom);
+  sockets.push(peers[1]);
+  await waitUntil(() => peers.every(peer => peer.state?.online.every(Boolean)), 'guest rejoins');
+  assert.equal(peers[1].state.world.run, peers[0].state.world.run);
+  set(0, { use: true });
+  await waitUntil(() => peers.every(peer => peer.motion.bridge), 'bridge raises again');
+  await move(1, BRIDGE_SWITCHES[1]);
+  set(1, { use: true });
+  await waitUntil(() => peers.every(peer => peer.state.world.puzzle.done), 'far latch locks on both sessions');
+  set(0, {});
+  set(1, {});
+  await move(0, BRIDGE_SWITCHES[1] + 60);
+  assert.ok(peers.every(peer => peer.motion.bridge && peer.motion.meter === 100));
+  assert.equal(peers[0].state.world.q, 0);
 });

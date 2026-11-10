@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import {
   CHAPTERS, CAST, WIDTH, FLOOR, PIT, EXIT, CRANK, RAFT_HALF, RAFT_PAD,
-  BRIDGE_SWITCHES, CLUE_HIGH, CLUE_LOW, PATTERN, CLIMB, PADS, TIMERS,
-  stageOf, stageQuestionStart, platformsFor, hasPit,
+  BRIDGE_SWITCHES, BRIDGE_REACH, CLUE_HIGH, CLUE_LOW, PATTERN, CLIMB, PADS, TIMERS,
+  stageOf, stageQuestionStart, platformsFor, hasPit, within,
 } from '../shared/chapters.js';
 import { drawAvatar, AVATAR_WIDTH, AVATAR_HEIGHT, AVATAR_PIXELS } from './avatar.js';
 import { hasSpriteLook } from './avatar-sprites.js';
@@ -35,6 +35,7 @@ class AdventureScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, WIDTH, VIEW_H);
     this.cameras.main.setBackgroundColor('#216155');
     this.stageObjects = this.add.container();
+    this.bridgeDeck = PIT.map((x, i) => this.bridgeHalf(x, i === 0 ? 1 : -1));
     this.dynamic = this.add.graphics().setDepth(8);
     this.foreground = this.add.graphics().setDepth(16);
     this.hero = [0, 1].map(i => {
@@ -46,6 +47,9 @@ class AdventureScene extends Phaser.Scene {
       };
     });
     this.targetIcon = this.add.text(0, 0, '', { ...text, fontSize: '19px' }).setOrigin(.5).setDepth(10);
+    this.bridgeSigns = BRIDGE_SWITCHES.map(x => this.add.text(x, FLOOR - 89, '', {
+      ...text, fontSize: '16px', padding: { x: 9, y: 5 }, backgroundColor: '#173d39', strokeThickness: 0,
+    }).setOrigin(.5).setDepth(11).setVisible(false));
     this.lastArt = -100;
   }
 
@@ -74,6 +78,9 @@ class AdventureScene extends Phaser.Scene {
       floor.lineStyle(2, 0x405a55, .65).lineBetween(left + 11, y + 14, right - 8, y + 14);
     }
     this.cameras.main.setScroll(0, 0);
+    this.bridgeLift = 0;
+    this.bridgeDeck.forEach(deck => deck.setVisible(stage.mode === 'bridge'));
+    this.bridgeSigns.forEach(sign => sign.setVisible(stage.mode === 'bridge'));
     this.raftX = undefined;
     this.hero.forEach((h, i) => h.image.setPosition(110 + i * 50, FLOOR));
   }
@@ -107,6 +114,79 @@ class AdventureScene extends Phaser.Scene {
       const dx = i * (7 + sway / 3);
       const height = 16 - Math.abs(i) * 3;
       g.fillTriangle(x, y, x + dx, y - height, x + dx + 6, y - height / 2);
+    }
+  }
+
+  bridgeHalf(x, direction) {
+    const g = this.add.graphics({ x, y: FLOOR }).setDepth(6).setScale(direction, 1).setVisible(false);
+    const length = (PIT[1] - PIT[0]) / 2;
+    g.fillStyle(0x473429, 1).fillRoundedRect(-10, 2, length + 10, 18, 4);
+    for (let plank = 0; plank < length; plank += 16) {
+      const tint = plank % 48 === 0 ? 0xe7b474 : 0xc48b56;
+      g.fillStyle(tint, 1).fillRoundedRect(plank, 0, 15, 12, 2);
+      g.lineStyle(2, 0x75492f, .58).lineBetween(plank + 3, 9, plank + 11, 7);
+      g.fillStyle(0x62412e, 1).fillCircle(plank + 4, 4, 1.4).fillCircle(plank + 12, 4, 1.4);
+    }
+    const posts = [0, 48, 99, 151];
+    for (let i = 1; i < posts.length; i++) {
+      const left = posts[i - 1];
+      const right = posts[i];
+      g.lineStyle(5, 0x60432c, 1).lineBetween(left, -29, (left + right) / 2, -21).lineBetween((left + right) / 2, -21, right, -29);
+      g.lineStyle(2, 0xf1c989, 1).lineBetween(left, -30, (left + right) / 2, -23).lineBetween((left + right) / 2, -23, right, -30);
+    }
+    for (const post of posts) {
+      g.fillStyle(0x4c3529, 1).fillRoundedRect(post - 5, -36, 10, 51, 3);
+      g.fillStyle(0xb88454, 1).fillRoundedRect(post - 3, -34, 5, 43, 2);
+      g.fillStyle(0xf5c986, 1).fillRect(post - 5, -31, 10, 4).fillCircle(post, 8, 2);
+    }
+    return g;
+  }
+
+  drawBridge(world, motion, smooth, self) {
+    const g = this.dynamic;
+    const [lever, latch] = BRIDGE_SWITCHES;
+    const [x, y, , , , grounded] = motion.players[self];
+    const player = { x, y };
+    const locked = world.puzzle.done;
+    const holding = motion.pad.some(Boolean);
+    this.bridgeLift = motion.bridge ? 1 : Phaser.Math.Linear(this.bridgeLift, motion.meter / 100, smooth);
+    const angle = .43 * (1 - this.bridgeLift);
+    this.bridgeDeck[0].setRotation(angle);
+    this.bridgeDeck[1].setRotation(-angle);
+    BRIDGE_SWITCHES.forEach((position, i) => {
+      const near = grounded && within(player, position, FLOOR, BRIDGE_REACH);
+      const live = i === 0 ? holding : motion.bridge;
+      const bright = near || live || locked;
+      g.fillStyle(bright ? 0xffdb78 : 0xe6cb99, near ? .35 : .16).fillEllipse(position, FLOOR - 1, 96, 18);
+      g.lineStyle(2, bright ? 0xffdd78 : 0xb9b287, near ? .95 : .65).strokeEllipse(position, FLOOR - 1, 95, 17);
+      g.fillStyle(0x4e3428, 1).fillRoundedRect(position - 24, FLOOR - 28, 48, 28, 5);
+      g.fillStyle(0x9b6542, 1).fillRoundedRect(position - 19, FLOOR - 25, 38, 19, 4);
+      g.lineStyle(2, 0xe1ad67, .8).lineBetween(position - 15, FLOOR - 22, position + 15, FLOOR - 22);
+      this.bridgeSigns[i].setText(locked ? (i === 0 ? 'Pijakan aman' : '✓ Terkunci') : i === 0 ? '① TAHAN TUAS' : '② PENGUNCI')
+        .setColor(bright ? '#ffe5a1' : '#e6e9cb');
+    });
+    const handle = lever + (holding ? 19 : -19);
+    g.lineStyle(10, 0x50342a, 1).lineBetween(lever, FLOOR - 18, handle, FLOOR - 59);
+    g.lineStyle(5, 0xc88d53, 1).lineBetween(lever, FLOOR - 18, handle, FLOOR - 59);
+    g.fillStyle(holding ? 0xfbe791 : 0xe6a965, 1).fillCircle(handle, FLOOR - 60, 9);
+    g.lineStyle(3, 0x754a30, 1).strokeCircle(handle, FLOOR - 60, 9);
+    g.fillStyle(0x544034, 1).fillCircle(latch, FLOOR - 43, 23);
+    g.lineStyle(4, locked ? 0xc6f0a6 : 0xdba871, 1).strokeCircle(latch, FLOOR - 43, 19);
+    for (let i = 0; i < 6; i++) {
+      const turn = i * Math.PI / 3 + (locked ? .35 : 0);
+      g.lineBetween(latch, FLOOR - 43, latch + Math.cos(turn) * 17, FLOOR - 43 + Math.sin(turn) * 17);
+    }
+    g.fillStyle(locked ? 0xc6f0a6 : 0xf1ca87, 1).fillCircle(latch, FLOOR - 43, 5);
+    if (locked) {
+      g.fillStyle(0xf4c76c, 1).fillRoundedRect((PIT[0] + PIT[1]) / 2 - 10, FLOOR - 4, 20, 14, 3);
+      const age = (Date.now() - (world.notice?.at ?? 0)) / 1000;
+      if (world.notice?.kind === 'success' && age < 1.2) {
+        for (let i = 0; i < 12; i++) {
+          const ray = i * Math.PI / 6;
+          g.fillStyle(i % 2 ? 0xffd57d : 0xc5f4af, Math.max(0, 1 - age / 1.2))
+            .fillCircle(latch + Math.cos(ray) * (20 + age * 46), FLOOR - 46 + Math.sin(ray) * (20 + age * 46), 3 + i % 3);
+        }
+      }
     }
   }
 
@@ -152,7 +232,7 @@ class AdventureScene extends Phaser.Scene {
     g.lineStyle(2, c.brown, 1).strokeCircle(x, y - 105, special ? 15 : 9);
   }
 
-  drawMechanism(stage, world, motion, ms, smooth) {
+  drawMechanism(stage, world, motion, ms, smooth, self) {
     const g = this.dynamic.clear();
     const c = PALETTE;
     const { mode, quizAt } = stage;
@@ -165,22 +245,7 @@ class AdventureScene extends Phaser.Scene {
     this.targetIcon.setVisible(target !== undefined && !world.quiz);
     if (target !== undefined) this.targetIcon.setText('✦').setPosition(target, FLOOR - 78 + Math.sin(ms / 170) * 4);
     if (stage.support) this.switch(g, CRANK, FLOOR, Boolean(world.quiz?.supported), 'stone');
-    if (mode === 'bridge') {
-      const [left, right] = PIT;
-      if (motion.bridge) {
-        g.fillStyle(c.brown, 1).fillRoundedRect(left - 3, FLOOR - 4, right - left + 6, 16, 4);
-        for (let x = left; x <= right; x += 16) g.fillStyle(c.timber, 1).fillRoundedRect(x, FLOOR - 5, 13, 10, 2);
-        for (let x = left; x <= right; x += 40) g.lineStyle(4, c.brown, 1).lineBetween(x, FLOOR + 3, x, FLOOR - 25);
-        g.lineStyle(3, 0xd4ab6e, 1).lineBetween(left, FLOOR - 21, right, FLOOR - 21);
-      } else {
-        g.lineStyle(3, c.timber, .9);
-        g.lineBetween(left, FLOOR - 7, left + 52, FLOOR + 32);
-        g.lineBetween(right, FLOOR - 7, right - 44, FLOOR + 39);
-        for (let i = 0; i < 4; i++) g.fillStyle(c.brown, 1).fillRect(left + i * 11, FLOOR + i * 5, 9, 6);
-      }
-      this.switch(g, BRIDGE_SWITCHES[0], FLOOR, motion.bridge);
-      this.switch(g, BRIDGE_SWITCHES[1], FLOOR, puzzle.done);
-    }
+    if (mode === 'bridge') this.drawBridge(world, motion, smooth, self);
     if (mode === 'raft' || mode === 'cable') {
       this.raftX = this.raftX === undefined ? motion.raftX : Phaser.Math.Linear(this.raftX, motion.raftX, smooth);
       const x = this.raftX;
@@ -250,7 +315,7 @@ class AdventureScene extends Phaser.Scene {
       this.stageArt(world);
     }
     const smooth = 1 - Math.exp(-Math.min(dt, 60) / 49);
-    this.drawMechanism(stageOf(world), world, motion, ms, smooth);
+    this.drawMechanism(stageOf(world), world, motion, ms, smooth, self);
     for (let slot = 0; slot < 2; slot++) {
       const h = this.hero[slot];
       const [x, y, , face, pose, grounded] = motion.players[slot];
