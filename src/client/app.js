@@ -7,7 +7,7 @@ import {
 } from '../shared/chapters.js';
 import { SKIN, HEAD, CLOTH, OUTFIT, ACCESSORY, DEFAULT_AVATAR } from '../shared/avatar-options.js';
 import { RoomConnection, errors, normalizedCode, storeRead, storeWrite } from './network.js';
-import { AudioEngine, MUSIC } from './audio.js';
+import { AudioEngine, MUSIC, RECORDINGS } from './audio.js';
 import { drawAvatar, AVATAR_WIDTH, AVATAR_HEIGHT, AVATAR_PIXELS } from './avatar.js';
 import { spriteArtReady } from './avatar-sprites.js';
 
@@ -590,7 +590,10 @@ addEventListener('keydown', event => {
 });
 addEventListener('keyup', event => { if (pressed.delete(event.code)) emitInput(); });
 addEventListener('blur', () => releaseAll());
-document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) releaseAll();
+  audio.setVisible(!document.hidden);
+});
 setInterval(() => {
   if (screen === 'play' && !document.hidden) {
     emitInput();
@@ -632,13 +635,14 @@ function help() {
 }
 
 function settingsDialog() {
-  const route = audio.key === 'aceh' && !data?.world ? 'Musik pembuka' : (MUSIC[audio.key]?.[0] || '');
+  const title = audio.track?.recording ? RECORDINGS[audio.key]?.title : MUSIC[audio.key]?.[0];
+  const route = audio.key === 'aceh' && !data?.world ? 'Musik pembuka' : (title || '');
   showModal('settings', `<p class="eyebrow"><span></span> PERLENGKAPAN</p><h2 id="dialog-title">Pengaturan</h2>
     <p>Sedang diputar · <b>${esc(route)}</b></p>
     <div class="settings-grid"><label>Volume musik <input type="range" id="music-volume" data-setting="music" min="0" max="1" step=".05" value="${settings.music}"></label>
       <label>Volume efek <input type="range" id="effects-volume" data-setting="effects" min="0" max="1" step=".05" value="${settings.effects}"></label>
       <label class="switch-label"><input type="checkbox" data-setting="mute" ${settings.mute ? 'checked' : ''}> Bisukan semua suara</label></div>
-    <div class="row">${screen === 'play' || screen === 'ending' ? btn('Kembali ke Menu', 'home', 'secondary') : ''}${btn('Selesai', 'close', 'primary')}</div>`);
+    <div class="row"><a class="btn mini" href="/audio/kredit.txt" target="_blank" rel="noopener noreferrer">Kredit musik</a>${screen === 'play' || screen === 'ending' ? btn('Kembali ke Menu', 'home', 'secondary') : ''}${btn('Selesai', 'close', 'primary')}</div>`);
 }
 
 function avatarSelect(key, label, list, choice) {

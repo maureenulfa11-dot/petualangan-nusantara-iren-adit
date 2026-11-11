@@ -2,17 +2,20 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mkdir, readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
+import { RECORDINGS } from '../src/client/audio.js';
 import { startWorker, waitUntil, delay } from './server.mjs';
 import { BY_ID } from '../src/server/questions.js';
 import { CHAPTERS, CLIMB, CRANK, EXIT, PATTERN, PADS, RAFT_FROM, RAFT_PAD, SYMBOLS, TIMERS } from '../src/shared/chapters.js';
 
 function watch(page) {
-  const peer = { page, state: null, motion: null, problems: [] };
+  const peer = { page, state: null, motion: null, problems: [], recordings: new Set() };
   page.on('pageerror', error => peer.problems.push(error.message));
   page.on('response', response => {
-    if (response.status() >= 400 && /\/(art|assets)\/|manifest\.webmanifest|\/sw\.js/.test(response.url())) {
+    if (response.status() >= 400 && /\/(art|assets|audio)\/|manifest\.webmanifest|\/sw\.js/.test(response.url())) {
       peer.problems.push('Missing asset: ' + new URL(response.url()).pathname);
     }
+    const path = new URL(response.url()).pathname;
+    if (response.ok() && /^\/audio\/[^/]+\.mp3$/.test(path)) peer.recordings.add(path);
   });
   page.on('websocket', socket => socket.on('framereceived', ({ payload }) => {
     if (typeof payload !== 'string' || payload === 'pong') return;
@@ -217,7 +220,18 @@ test('two mobile-sized Chromium sessions finish ' + (fullJourney ? 'the six-isla
   const peers = [a, b];
   await Promise.all(peers.map(peer => peer.page.addInitScript(() => {
     const create = AudioContext.prototype.createOscillator;
+    const createBufferSource = AudioContext.prototype.createBufferSource;
     window.playedNotes = 0;
+    window.playedLoops = 0;
+    AudioContext.prototype.createBufferSource = function () {
+      const source = createBufferSource.call(this);
+      const start = source.start.bind(source);
+      source.start = (...args) => {
+        if (source.loop && source.buffer?.duration > 0) window.playedLoops++;
+        return start(...args);
+      };
+      return source;
+    };
     AudioContext.prototype.createOscillator = function () {
       const oscillator = create.call(this);
       const start = oscillator.start.bind(oscillator);
@@ -254,6 +268,7 @@ test('two mobile-sized Chromium sessions finish ' + (fullJourney ? 'the six-isla
   await delay(400);
   await a.page.screenshot({ path: output + '/aceh.png' });
   assert.equal(await a.page.locator('#screen').getAttribute('data-music'), 'aceh');
+  await Promise.all(peers.map(peer => peer.page.waitForFunction(() => window.playedLoops > 0)));
   const stopJump = await holdTouch(contexts[0], a.page, '[data-control="jump"]');
   await delay(130);
   await stopJump();
@@ -360,7 +375,12 @@ test('two mobile-sized Chromium sessions finish ' + (fullJourney ? 'the six-isla
   assert.equal(b.state.world.q, 10);
   await Promise.all(peers.map(peer => peer.page.getByRole('button', { name: 'Lanjut ke Jawa' }).click()));
   await waitUntil(() => peers.every(peer => peer.state.world.chapter === 1 && peer.state.world.phase === 'play'), 'both advance to Jawa');
-  if (fullJourney) await finishJourney(peers, output);
+  if (fullJourney) {
+    await finishJourney(peers, output);
+    const expectedRecordings = Object.values(RECORDINGS).map(recording => '/audio/' + recording.file).sort();
+    for (const peer of peers) assert.deepEqual([...peer.recordings].sort(), expectedRecordings);
+    assert.ok(await a.page.evaluate(() => window.playedLoops >= 5), 'all regional recordings loop during the journey');
+  }
   for (const peer of peers) assert.deepEqual(peer.problems, []);
 });
 

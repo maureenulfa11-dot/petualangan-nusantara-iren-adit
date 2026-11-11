@@ -2,7 +2,15 @@
 
 ## Pemulihan aset pada 11 November 2026
 
-Build produksi lulus. Dua pengujian lokal pada Chromium Headless 153 lulus untuk sprite, pilihan penampilan, pencerminan, dan halaman potret yang bisa dimuat ulang saat luring. Pengujian karakter menjalankan 825 kasus dan memastikan setiap pilihan penampilan mengubah hasil gambar pada setiap pose yang diperiksa. Uji pada iPhone fisik masih diperlukan.
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Build dan paket Worker | Build Vite lulus. `wrangler deploy --dry-run` membaca 80 aset dan memvalidasi binding Worker secara lokal. |
+| Pengujian server | 7 lulus. Mencakup 60 soal, dua koneksi pemain, jembatan Aceh, dan pemulihan checkpoint. |
+| Sprite dan halaman potret | Chromium Headless 153 lulus 825 pemeriksaan pose dan pilihan karakter. Halaman potret dapat dimuat ulang saat luring. |
+| Perjalanan dua pemain | Dua sesi browser berukuran ponsel menyelesaikan enam pulau dan 60 trivia hingga penutup Bali dalam 214,4 detik. Uji meliputi kontrol sentuh, pembatalan sentuhan, jembatan, dan sambung ulang. |
+| Musik | Kedua sesi memuat kelima rekaman yang dipulihkan. Sumber audio berulang dimulai saat tema lokasi diputar. |
+
+Uji browser memakai Chromium pada Linux. Safari di iPhone fisik masih perlu diuji. Cloudflare mencatat build gagal pada `main` dan preview PR. Pengecekan paket lokal lulus, sedangkan penyebab kegagalan cloud perlu dibaca di log akun Cloudflare.
 
 ## Pemeriksaan branch 10 November 2026
 
@@ -59,7 +67,7 @@ Tanggal uji 8 November 2026. Runtime lokal menggunakan Node.js 24.22.1 dan Wrang
 
 ## Pemeriksaan setelah publikasi
 
-1. Publikasikan Worker terpisah di akun Workers Free pemilik dan simpan salinan ke repositori GitHub privat.
+1. Gunakan Worker dan repository GitHub yang sudah terhubung di akun pemilik.
 2. Buka alamat HTTPS di Safari pada iPhone dan Chrome pada Android. Gunakan dua jaringan berbeda.
 3. Buat room, buka tautan dari aplikasi pesan, lakukan lompatan dan tahan Aksi bersamaan. Kunci layar selama satu menit, sambungkan kembali, lalu periksa progres dan suara.
 4. Tambahkan game ke layar utama. Periksa kontrol dalam mode lanskap, perpindahan aplikasi, pemulihan suara, serta ukuran tombol pada kedua ponsel.
