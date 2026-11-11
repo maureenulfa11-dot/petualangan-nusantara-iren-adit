@@ -23,7 +23,7 @@ const icon = '<img class="brand-icon" src="/art/icon.svg" alt="">';
 const avatarSize = `width="${AVATAR_WIDTH * AVATAR_PIXELS}" height="${AVATAR_HEIGHT * AVATAR_PIXELS}"`;
 const avatars = structuredClone(storeRead('nusantara-avatars-v1', DEFAULT_AVATAR));
 let preferred = storeRead('nusantara-role-v1', 0) === 1 ? 1 : 0;
-const settings = { music: .6, effects: .75, mute: false, ...storeRead('nusantara-settings-v1', {}) };
+const settings = { music: .6, effects: .75, mute: false, wideView: false, ...storeRead('nusantara-settings-v1', {}) };
 const audio = new AudioEngine(settings);
 const invite = normalizedCode(new URLSearchParams(location.search).get('room'));
 let data = null;
@@ -263,6 +263,7 @@ function showPlay() {
         <div class="game-location">${icon}<div><span id="game-location-small" class="overline"></span><b id="game-location-title"></b></div></div>
         <div class="hud-pills">
           <span class="hud-pill" id="quiz-count"></span><span class="hud-pill" id="piece-count"></span>
+          ${btn('Zoom out', 'zoom-view', 'hud-button', `aria-pressed="${settings.wideView === true}"`)}
           ${btn('Peta', 'map-open', 'hud-button')}${btn('⚙', 'settings', 'hud-button', 'aria-label="Pengaturan"')}
         </div>
       </div>
@@ -288,7 +289,7 @@ function showPlay() {
   wireTouch();
   const key = ++renderKey;
   import('./scene.js').then(({ mountGame }) => {
-    if (key === renderKey && screen === 'play') phaser = mountGame($('#phaser'), () => data);
+    if (key === renderKey && screen === 'play') phaser = mountGame($('#phaser'), () => data, () => settings.wideView === true);
   }).catch(() => showToast('Pemandangan belum berhasil dimuat. Muat ulang halaman untuk kembali ke room.', 'warn', 6000));
 }
 
@@ -820,6 +821,11 @@ document.addEventListener('click', async event => {
     case 'begin': room.send({ t: 'start' }); break;
     case 'copy-invite': await copy(roomInvite()); break;
     case 'map-open': showMap(true); break;
+    case 'zoom-view':
+      settings.wideView = settings.wideView !== true;
+      actionButton.setAttribute('aria-pressed', String(settings.wideView));
+      storeWrite('nusantara-settings-v1', settings);
+      break;
     case 'sprint':
       sprint = !sprint;
       actionButton.setAttribute('aria-pressed', String(sprint));

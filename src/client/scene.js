@@ -8,6 +8,8 @@ import { drawAvatar, AVATAR_WIDTH, AVATAR_HEIGHT, AVATAR_PIXELS } from './avatar
 
 const VIEW_W = 960;
 const VIEW_H = 480;
+const WIDE_ZOOM = VIEW_W / WIDTH;
+const WIDE_HEIGHT = VIEW_H / WIDE_ZOOM;
 const HERO_SCALE = .88;
 const PALETTE = {
   cream: 0xffe6ab, gold: 0xf1be66, deep: 0x243d37, brown: 0x704f42, timber: 0xa77854,
@@ -17,9 +19,10 @@ const COLORS = [0xffe9b2, 0xc5f0e0];
 const text = { fontFamily: 'Plus Jakarta Sans Variable, sans-serif', color: '#fff4d4', fontSize: '13px', fontStyle: 'bold', stroke: '#25433b', strokeThickness: 4 };
 
 class AdventureScene extends Phaser.Scene {
-  constructor(read) {
+  constructor(read, readWideView) {
     super('adventure');
     this.read = read;
+    this.readWideView = readWideView;
     this.artKeys = [...new Set(CHAPTERS.flatMap(ch => ch.stages.map(stage => stage.landscape || stage.theme)))];
   }
 
@@ -31,7 +34,7 @@ class AdventureScene extends Phaser.Scene {
   }
 
   create() {
-    this.cameras.main.setBounds(0, 0, WIDTH, VIEW_H);
+    this.cameras.main.setBounds(0, (VIEW_H - WIDE_HEIGHT) / 2, WIDTH, WIDE_HEIGHT);
     this.cameras.main.setBackgroundColor('#216155');
     this.stageObjects = this.add.container();
     this.bridgeDeck = PIT.map((x, i) => this.bridgeHalf(x, i === 0 ? 1 : -1));
@@ -56,10 +59,11 @@ class AdventureScene extends Phaser.Scene {
     this.stageObjects.removeAll(true);
     const stage = stageOf(world);
     const backdrop = stage.landscape || stage.theme;
-    const layer = (x, y, key, factor, depth) => this.add.image(x, y, key)
-      .setOrigin(0).setScrollFactor(factor, 1).setDepth(depth);
-    this.stageObjects.add(layer(0, 0, backdrop + '-far', .35, 0));
-    this.stageObjects.add(layer(0, 0, backdrop + '-near', .83, 1));
+    this.backdrops = [[backdrop + '-far', .35], [backdrop + '-near', .83]].map(([texture, parallax], depth) => {
+      const image = this.add.image(0, 0, texture).setOrigin(0).setDepth(depth);
+      this.stageObjects.add(image);
+      return { image, parallax };
+    });
     const floor = this.add.graphics();
     this.stageObjects.add(floor);
     const banks = hasPit(stage) ? [[0, PIT[0]], [PIT[1], WIDTH]] : [[0, WIDTH]];
@@ -77,6 +81,7 @@ class AdventureScene extends Phaser.Scene {
       floor.lineStyle(2, 0x405a55, .65).lineBetween(left + 11, y + 14, right - 8, y + 14);
     }
     this.cameras.main.setScroll(0, 0);
+    this.cameraWide = undefined;
     this.bridgeLift = 0;
     this.bridgeDeck.forEach(deck => deck.setVisible(stage.mode === 'bridge'));
     this.bridgeSigns.forEach(sign => sign.setVisible(stage.mode === 'bridge'));
@@ -333,26 +338,46 @@ class AdventureScene extends Phaser.Scene {
       }
     }
     if (ms - this.lastArt >= 31) this.lastArt = ms;
-    const local = this.hero[self].image;
-    this.cameras.main.setScroll(Phaser.Math.Clamp(Phaser.Math.Linear(this.cameras.main.scrollX, local.x - 390, smooth), 0, WIDTH - VIEW_W), 0);
+    this.updateCamera(this.hero[self].image.x, smooth);
+  }
+
+  updateCamera(playerX, smooth) {
+    const camera = this.cameras.main;
+    const wide = this.readWideView();
+    const changed = wide !== this.cameraWide;
+    if (changed) {
+      this.cameraWide = wide;
+      camera.setZoom(wide ? WIDE_ZOOM : 1);
+      for (const { image, parallax } of this.backdrops) {
+        image.setScrollFactor(wide ? 1 : parallax, 1);
+        image.setDisplaySize(wide ? Math.max(WIDTH, image.width) : image.width, image.height);
+      }
+    }
     const g = this.foreground.clear();
+    if (wide) {
+      camera.setScroll((WIDTH - VIEW_W) / 2, 0);
+      return;
+    }
+    const follow = playerX - 390;
+    const left = Phaser.Math.Clamp(changed ? follow : Phaser.Math.Linear(camera.scrollX, follow, smooth), 0, WIDTH - VIEW_W);
+    camera.setScroll(left, 0);
     for (let i = 0; i < 2; i++) {
       const hero = this.hero[i].image;
-      if (hero.x < this.cameras.main.scrollX || hero.x > this.cameras.main.scrollX + VIEW_W) {
-        const side = hero.x < this.cameras.main.scrollX ? -1 : 1;
-        const x = this.cameras.main.scrollX + (side === -1 ? 18 : VIEW_W - 18);
+      if (hero.x < left || hero.x > left + VIEW_W) {
+        const side = hero.x < left ? -1 : 1;
+        const x = left + (side === -1 ? 18 : VIEW_W - 18);
         g.fillStyle(COLORS[i], .94).fillTriangle(x + side * 8, 194, x - side * 7, 186, x - side * 7, 202);
       }
     }
   }
 }
 
-export function mountGame(parent, read) {
+export function mountGame(parent, read, readWideView) {
   return new Phaser.Game({
     type: Phaser.AUTO, parent, width: VIEW_W, height: VIEW_H,
     backgroundColor: '#1b4f47', antialias: true, banner: false,
     fps: { target: 60 }, audio: { noAudio: true },
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: [new AdventureScene(read)],
+    scene: [new AdventureScene(read, readWideView)],
   });
 }
