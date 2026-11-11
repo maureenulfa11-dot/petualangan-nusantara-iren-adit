@@ -1,4 +1,4 @@
-// Melodi dan efek orisinal. Nilai angka adalah langkah nada, bukan cuplikan rekaman.
+// Tema sintetis juga tersedia jika rekaman gagal dimuat.
 export const MUSIC = {
   aceh: ['Angin Seulanga', .183, 62, [0,2,4,7,9], [0,2,null,3,4,3,2,null,1,2,4,null,3,2,1,null], 'reed'],
   toba: ['Riak Danau', .208, 57, [0,2,4,7,9], [0,null,2,1,3,null,2,3,4,3,null,2,0,1,2,null], 'pluck'],
@@ -10,6 +10,13 @@ export const MUSIC = {
   bali: ['Senja Saling Menjawab', .154, 59, [0,1,5,7,8], [0,3,1,3,2,4,null,2,0,4,1,3,2,1,3,null], 'wood'],
   senja: ['Keping Terakhir', .212, 60, [0,2,4,7,9], [0,null,2,3,4,null,3,2,1,null,2,4,3,null,2,0], 'pluck'],
 };
+export const RECORDINGS = {
+  aceh: { title: 'Bungong Jeumpa', file: 'bungong-jeumpa.mp3' },
+  jawa: { title: 'Gamelan Keraton Yogyakarta', file: 'gamelan-yogyakarta.mp3' },
+  kalimantan: { title: 'Ampar-Ampar Pisang', file: 'ampar-ampar-pisang.mp3' },
+  papua: { title: 'Yamko Rambe Yamko', file: 'yamko-rambe-yamko.mp3' },
+  bali: { title: 'Kecak Bali', file: 'kecak-bali.mp3' },
+};
 const FX = {
   right: [72, 76, 81], wrong: [61, 57, 54], clue: [67, 74], success: [64, 69, 73, 76],
   danger: [52, 43], travel: [59, 66, 71], final: [60, 64, 67, 72, 79], jump: [58, 65], explore: [64, 71],
@@ -20,6 +27,7 @@ export class AudioEngine {
   constructor(settings) {
     this.settings = settings;
     this.key = 'aceh';
+    this.recordings = new Map();
   }
 
   unlock() {
@@ -46,6 +54,12 @@ export class AudioEngine {
     this.effects.gain.setTargetAtTime(settings.mute ? 0 : settings.effects * .34, now, .05);
   }
 
+  setVisible(visible) {
+    if (!this.ctx) return;
+    const operation = visible ? this.ctx.resume() : this.ctx.suspend();
+    operation.catch(() => {});
+  }
+
   change(key, force = false) {
     if (!MUSIC[key] || (key === this.key && !force)) return;
     this.key = key;
@@ -55,13 +69,43 @@ export class AudioEngine {
       const old = this.track.gain;
       old.gain.cancelScheduledValues(now);
       old.gain.setTargetAtTime(0, now, .22);
+      this.track.source?.stop(now + 1.4);
       setTimeout(() => old.disconnect(), 1400);
     }
     const gain = this.ctx.createGain();
     gain.gain.setValueAtTime(.001, now);
     gain.gain.setTargetAtTime(1, now + .08, .26);
     gain.connect(this.music);
-    this.track = { gain, next: now + .09, i: 0 };
+    const recording = RECORDINGS[key]?.file;
+    this.track = { gain, next: now + .09, i: 0, recording };
+    if (recording) this.playRecording(this.track);
+  }
+
+  async playRecording(track) {
+    const file = track.recording;
+    let pending = this.recordings.get(file);
+    try {
+      if (!pending) {
+        pending = fetch('/audio/' + file).then(response => {
+          if (!response.ok) throw new Error('Rekaman tidak tersedia');
+          return response.arrayBuffer();
+        });
+        this.recordings.set(file, pending);
+      }
+      const bytes = await pending;
+      if (this.track !== track) return;
+      const buffer = await this.ctx.decodeAudioData(bytes.slice(0));
+      if (this.track !== track) return;
+      const source = this.ctx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      source.connect(track.gain);
+      source.start();
+      track.source = source;
+    } catch {
+      if (this.recordings.get(file) === pending) this.recordings.delete(file);
+      track.recording = null;
+    }
   }
 
   tone(output, type, note, t, length, level, detune = 0) {
@@ -79,7 +123,7 @@ export class AudioEngine {
   }
 
   schedule() {
-    if (this.ctx.state !== 'running' || !this.track || document.hidden) return;
+    if (this.ctx.state !== 'running' || !this.track || this.track.recording || document.hidden) return;
     const [, beat, base, scale, melody, timbre] = MUSIC[this.key];
     const track = this.track;
     const now = this.ctx.currentTime;

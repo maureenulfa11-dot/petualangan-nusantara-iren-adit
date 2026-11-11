@@ -1,18 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
+import { RECORDINGS } from '../src/client/audio.js';
 import { startWorker, waitUntil, delay } from './server.mjs';
 import { BY_ID } from '../src/server/questions.js';
 import { CHAPTERS, CLIMB, CRANK, EXIT, PATTERN, PADS, RAFT_FROM, RAFT_PAD, SYMBOLS, TIMERS } from '../src/shared/chapters.js';
 
 function watch(page) {
-  const peer = { page, state: null, motion: null, problems: [] };
+  const peer = { page, state: null, motion: null, problems: [], recordings: new Set() };
   page.on('pageerror', error => peer.problems.push(error.message));
   page.on('response', response => {
-    if (response.status() >= 400 && /\/(art|assets)\/|manifest\.webmanifest|\/sw\.js/.test(response.url())) {
+    if (response.status() >= 400 && /\/(art|assets|audio)\/|manifest\.webmanifest|\/sw\.js/.test(response.url())) {
       peer.problems.push('Missing asset: ' + new URL(response.url()).pathname);
     }
+    const path = new URL(response.url()).pathname;
+    if (response.ok() && /^\/audio\/[^/]+\.mp3$/.test(path)) peer.recordings.add(path);
   });
   page.on('websocket', socket => socket.on('framereceived', ({ payload }) => {
     if (typeof payload !== 'string' || payload === 'pong') return;
@@ -120,6 +123,90 @@ async function holdTouch(context, page, selector) {
 }
 
 const fullJourney = process.env.NUSANTARA_FULL_BROWSER === '1';
+
+test('approved artwork covers both characters, every action, mirrored movement and existing custom looks', { timeout: 55_000 }, async t => {
+  const base = await startWorker(t);
+  const browser = await chromium.launch(process.env.NUSANTARA_CHROMIUM
+    ? { executablePath: process.env.NUSANTARA_CHROMIUM, args: ['--disable-gpu', '--no-sandbox'] } : {});
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  const modules = {};
+  for (const path of ['client/avatar.js', 'client/avatar-sprites.js', 'shared/avatar-options.js']) {
+    modules['/src/' + path] = await readFile(new URL('../src/' + path, import.meta.url), 'utf8');
+  }
+  await page.route(/\/src\/(client\/avatar(?:-sprites)?|shared\/avatar-options)\.js$/, route =>
+    route.fulfill({ contentType: 'text/javascript', body: modules[new URL(route.request().url()).pathname] }));
+  await page.goto(base);
+  await page.waitForFunction(() => {
+    const canvases = [...document.querySelectorAll('.hero-avatars canvas')];
+    return canvases.length === 2 && canvases.every(canvas => canvas.width === 320 && canvas.height === 364
+      && canvas.getContext('2d').getImageData(0, 0, 320, 364).data.some(value => value));
+  });
+  const result = await page.evaluate(async () => {
+    const { drawAvatar } = await import('/src/client/avatar.js');
+    const { spriteArtReady, hasSpriteLook } = await import('/src/client/avatar-sprites.js');
+    const { DEFAULT_AVATAR, SKIN, HEAD, CLOTH, OUTFIT, ACCESSORY } = await import('/src/shared/avatar-options.js');
+    const loaded = await spriteArtReady;
+    const poses = [
+      ['idle', 0, 0], ['walk', 0, 1], ['walk', 108, 2], ['walk', 216, 3], ['walk', 324, 2],
+      ['run', 0, 6], ['run', 125, 7], ['jump', 0, 4], ['land', 0, 5], ['push', 0, 8],
+      ['lift', 0, 9], ['rope', 0, 10], ['use', 0, 10], ['celebrate', 0, 11], ['correct', 0, 11],
+    ];
+    const actual = document.createElement('canvas');
+    const expected = document.createElement('canvas');
+    actual.width = expected.width = 320;
+    actual.height = expected.height = 364;
+    const ctx = actual.getContext('2d', { willReadFrequently: true });
+    const reference = expected.getContext('2d', { willReadFrequently: true });
+    const failures = loaded.filter(result => result.status === 'rejected').map(() => 'sprite asset failed to load');
+    let checked = 0;
+    for (const role of [0, 1]) {
+      const defaultFrames = new Map();
+      const sheet = new Image();
+      sheet.src = '/art/' + ['iren', 'adit'][role] + '-sprites.webp';
+      await sheet.decode();
+      if (sheet.naturalWidth !== 2304 || sheet.naturalHeight !== 896) failures.push('sheet size ' + role);
+      for (const [pose, ms, frame] of poses) {
+        for (const face of [-1, 1]) {
+          drawAvatar(ctx, DEFAULT_AVATAR[role], role, pose, ms, face);
+          reference.clearRect(0, 0, 320, 364);
+          reference.save();
+          if (face < 0) { reference.translate(320, 0); reference.scale(-1, 1); }
+          reference.drawImage(sheet, frame % 6 * 384, Math.floor(frame / 6) * 448, 384, 448, 4, 0, 312, 364);
+          reference.restore();
+          const pixels = ctx.getImageData(0, 0, 320, 364).data;
+          const wanted = reference.getImageData(0, 0, 320, 364).data;
+          if (!pixels.every((value, i) => value === wanted[i])) failures.push([role, pose, ms, face].join('/'));
+          if (!pixels.some((value, i) => i % 4 === 3 && value > 128)) failures.push('empty ' + pose);
+          if (face === 1) defaultFrames.set(frame, pixels);
+          checked++;
+        }
+      }
+      const choices = { skin: SKIN, head: HEAD[role], cloth: CLOTH, outfit: OUTFIT, accessory: ACCESSORY };
+      for (const [field, options] of Object.entries(choices)) {
+        for (let choice = 0; choice < options.length; choice++) {
+          const look = { ...DEFAULT_AVATAR[role], [field]: choice };
+          for (const [pose, ms, frame] of poses) {
+            drawAvatar(ctx, look, role, pose, ms);
+            const pixels = ctx.getImageData(0, 0, 320, 364).data;
+            if (!pixels.some((value, i) => i % 4 === 3 && value > 128)) {
+              failures.push('custom ' + [role, field, choice, pose].join('/'));
+            }
+            if (choice !== DEFAULT_AVATAR[role][field] && pixels.every((value, i) => value === defaultFrames.get(frame)[i])) {
+              failures.push('option had no effect ' + [role, field, choice, pose].join('/'));
+            }
+            checked++;
+          }
+        }
+      }
+      if (hasSpriteLook(DEFAULT_AVATAR[role], role, 'leo')) failures.push('ending variation');
+    }
+    return { checked, failures };
+  });
+  assert.ok(result.checked > 700);
+  assert.deepEqual(result.failures, []);
+});
+
 test('two mobile-sized Chromium sessions finish ' + (fullJourney ? 'the six-island adventure' : 'Sumatra') + ' through the player UI', { timeout: fullJourney ? 430_000 : 165_000 }, async t => {
   const base = await startWorker(t);
   const launch = process.env.NUSANTARA_CHROMIUM ? { executablePath: process.env.NUSANTARA_CHROMIUM, args: ['--disable-gpu', '--no-sandbox'] } : {};
@@ -133,7 +220,18 @@ test('two mobile-sized Chromium sessions finish ' + (fullJourney ? 'the six-isla
   const peers = [a, b];
   await Promise.all(peers.map(peer => peer.page.addInitScript(() => {
     const create = AudioContext.prototype.createOscillator;
+    const createBufferSource = AudioContext.prototype.createBufferSource;
     window.playedNotes = 0;
+    window.playedLoops = 0;
+    AudioContext.prototype.createBufferSource = function () {
+      const source = createBufferSource.call(this);
+      const start = source.start.bind(source);
+      source.start = (...args) => {
+        if (source.loop && source.buffer?.duration > 0) window.playedLoops++;
+        return start(...args);
+      };
+      return source;
+    };
     AudioContext.prototype.createOscillator = function () {
       const oscillator = create.call(this);
       const start = oscillator.start.bind(oscillator);
@@ -170,11 +268,44 @@ test('two mobile-sized Chromium sessions finish ' + (fullJourney ? 'the six-isla
   await delay(400);
   await a.page.screenshot({ path: output + '/aceh.png' });
   assert.equal(await a.page.locator('#screen').getAttribute('data-music'), 'aceh');
+  await Promise.all(peers.map(peer => peer.page.waitForFunction(() => window.playedLoops > 0)));
   const stopJump = await holdTouch(contexts[0], a.page, '[data-control="jump"]');
   await delay(130);
   await stopJump();
   await waitUntil(() => b.motion.players[0][1] < 380, 'touch jump visible to remote');
   await waitUntil(a.grounded, 'touch jump lands');
+  for (const peer of peers) {
+    for (const button of await peer.page.locator('.game-controls button').all()) {
+      const box = await button.boundingBox();
+      assert.ok(box.width >= 44 && box.height >= 44, 'touch targets are at least 44 CSS pixels');
+    }
+  }
+  const touch = await contexts[0].newCDPSession(a.page);
+  const points = await Promise.all(['right', 'jump'].map(async (control, i) => {
+    const box = await a.page.locator('[data-control="' + control + '"]').boundingBox();
+    return { id: i + 1, x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  }));
+  const beforeTouch = a.x();
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: points });
+  await waitUntil(() => b.motion.players[0][0] > beforeTouch + 12 && b.motion.players[0][1] < 380, 'two-finger movement and jump sync');
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+  await touch.detach();
+  await a.page.waitForFunction(() => document.querySelectorAll('[data-control].held').length === 0);
+  await waitUntil(a.grounded, 'cancelled touch jump lands');
+
+  const releaseMove = await holdTouch(contexts[0], a.page, '[data-control="right"]');
+  await a.page.locator('[data-control="right"].held').waitFor();
+  await b.page.goto('about:blank');
+  await waitUntil(() => a.state.online[1] === false, 'peer navigation pauses controls');
+  assert.equal(await a.page.locator('[data-control].held').count(), 0);
+  await releaseMove();
+  await b.page.goto(invite);
+  await b.page.getByRole('button', { name: 'Gabung Room', exact: true }).click();
+  await waitUntil(() => peers.every(peer => peer.state.online.every(Boolean)), 'touch interruption reconnects');
+  await waitUntil(a.grounded, 'resumed player lands');
+  const resting = a.x();
+  await delay(350);
+  assert.equal(a.x(), resting, 'old touch movement does not resume after reconnection');
   await trivia(peers, 312, { wrong: true });
   await bothAt(peers, 445, 467);
   await a.page.keyboard.down('E');
@@ -244,7 +375,12 @@ test('two mobile-sized Chromium sessions finish ' + (fullJourney ? 'the six-isla
   assert.equal(b.state.world.q, 10);
   await Promise.all(peers.map(peer => peer.page.getByRole('button', { name: 'Lanjut ke Jawa' }).click()));
   await waitUntil(() => peers.every(peer => peer.state.world.chapter === 1 && peer.state.world.phase === 'play'), 'both advance to Jawa');
-  if (fullJourney) await finishJourney(peers, output);
+  if (fullJourney) {
+    await finishJourney(peers, output);
+    const expectedRecordings = Object.values(RECORDINGS).map(recording => '/audio/' + recording.file).sort();
+    for (const peer of peers) assert.deepEqual([...peer.recordings].sort(), expectedRecordings);
+    assert.ok(await a.page.evaluate(() => window.playedLoops >= 5), 'all regional recordings loop during the journey');
+  }
   for (const peer of peers) assert.deepEqual(peer.problems, []);
 });
 

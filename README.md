@@ -34,12 +34,13 @@ npm run dev
 
 Buka alamat yang ditampilkan Wrangler, biasanya `http://localhost:8787`. Gunakan dua profil browser, satu jendela biasa dan satu jendela privat, atau dua perangkat. Gunakan alamat yang sama saat membuka undangan. Untuk ponsel di jaringan lokal yang sama, gunakan alamat IP komputer yang ditampilkan Wrangler. Pemasangan PWA di ponsel membutuhkan situs HTTPS.
 
-## Menyimpan di GitHub dan menerbitkan ke Cloudflare
+## Menerbitkan lewat Worker yang sudah terhubung
 
-1. Buat repositori GitHub privat bernama `petualangan-nusantara-iren-adit`. Aktifkan **Add a README file** agar repositori memiliki cabang `main`. Jika ingin Codex mengunggah proyek, beri integrasi GitHub akses ke repositori ini dan bagikan tautannya.
-2. Di akun Cloudflare dengan **Workers Free**, buka **Workers & Pages** → **Create application** → **GitHub**. Berikan akses hanya ke repositori game ini dan pilih repositori tersebut.
-3. Pilih cabang `main`, gunakan perintah build `npm run build` dan perintah deploy `npx wrangler deploy`. Biarkan direktori akar pada repositori. Konfigurasi membuat Worker `petualangan-nusantara-iren-adit` dengan Static Assets dan Durable Object SQLite sendiri. Pilih **Save and Deploy**.
-4. Buka alamat `workers.dev` yang muncul. Uji satu room pada dua ponsel menggunakan dua jaringan, misalnya Wi-Fi dan data seluler. Setelah ini, pembaruan yang digabung ke `main` dapat dibangun otomatis oleh integrasi Cloudflare.
+1. Di Cloudflare, buka **Workers & Pages** → **petualangan-nusantara-iren-adit** → **Settings** → **Build**.
+2. Pastikan repository terhubung ke `maureenulfa11-dot/petualangan-nusantara-iren-adit`. Pilih `main` sebagai branch produksi. Isi **Build command** dengan `npm run build` dan **Deploy command** dengan `npx wrangler deploy`. Gunakan `/` untuk **Root directory**.
+3. Saat perubahan masih ditinjau, di **Settings** → **Builds** pilih **Previews Base** dan matikan **Builds for Preview branches**. Pengaturan itu mengendalikan publikasi preview otomatis dari branch perbaikan.
+4. Setelah pengujian lulus dan pemilik menyetujui PR, gabungkan PR ke `main`. Cloudflare menjalankan build dan deploy dari branch produksi. Setelah berhasil, buka alamat game di **Overview**.
+5. Jika build gagal, pilih build tersebut di Cloudflare dan periksa pesan error pada log. Setelah game terbit, uji satu room pada dua ponsel melalui Wi-Fi dan data seluler.
 
 Panduan resmi [Cloudflare Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/).
 
