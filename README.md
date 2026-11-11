@@ -37,8 +37,8 @@ Buka alamat yang ditampilkan Wrangler, biasanya `http://localhost:8787`. Gunakan
 ## Menerbitkan lewat Worker yang sudah terhubung
 
 1. Di Cloudflare, buka **Workers & Pages** → **petualangan-nusantara-iren-adit** → **Settings** → **Build**.
-2. Pastikan repository terhubung ke `maureenulfa11-dot/petualangan-nusantara-iren-adit`. Pilih `main` sebagai branch produksi. Isi **Build command** dengan `npm run build` dan **Deploy command** dengan `npx wrangler deploy`. Biarkan **Root directory** pada akar repository.
-3. Saat perubahan masih ditinjau, gunakan **Branch control** untuk mematikan **Enable Preview Builds**. Pengaturan itu mengendalikan publikasi preview otomatis dari branch perbaikan.
+2. Pastikan repository terhubung ke `maureenulfa11-dot/petualangan-nusantara-iren-adit`. Pilih `main` sebagai branch produksi. Isi **Build command** dengan `npm run build` dan **Deploy command** dengan `npx wrangler deploy`. Gunakan `/` untuk **Root directory**.
+3. Saat perubahan masih ditinjau, di **Settings** → **Builds** pilih **Previews Base** dan matikan **Builds for Preview branches**. Pengaturan itu mengendalikan publikasi preview otomatis dari branch perbaikan.
 4. Setelah pengujian lulus dan pemilik menyetujui PR, gabungkan PR ke `main`. Cloudflare menjalankan build dan deploy dari branch produksi. Setelah berhasil, buka alamat game di **Overview**.
 5. Jika build gagal, pilih build tersebut di Cloudflare dan periksa pesan error pada log. Setelah game terbit, uji satu room pada dua ponsel melalui Wi-Fi dan data seluler.
 
