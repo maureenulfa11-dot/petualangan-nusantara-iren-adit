@@ -11,11 +11,10 @@ export const MUSIC = {
   senja: ['Keping Terakhir', .212, 60, [0,2,4,7,9], [0,null,2,3,4,null,3,2,1,null,2,4,3,null,2,0], 'pluck'],
 };
 export const RECORDINGS = {
-  aceh: { title: 'Bungong Jeumpa', file: 'bungong-jeumpa.mp3' },
+  aceh: { title: 'Bungong Jeumpa · instrumental', file: 'bungong-jeumpa-instrumental.mp3' },
   jawa: { title: 'Gamelan Keraton Yogyakarta', file: 'gamelan-yogyakarta.mp3' },
-  kalimantan: { title: 'Ampar-Ampar Pisang', file: 'ampar-ampar-pisang.mp3' },
-  papua: { title: 'Yamko Rambe Yamko', file: 'yamko-rambe-yamko.mp3' },
-  bali: { title: 'Kecak Bali', file: 'kecak-bali.mp3' },
+  kalimantan: { title: 'Ampar-Ampar Pisang · instrumental', file: 'ampar-ampar-pisang-instrumental.mp3' },
+  papua: { title: 'Yamko Rambe Yamko · instrumental', file: 'yamko-rambe-yamko-instrumental.mp3' },
 };
 const FX = {
   right: [72, 76, 81], wrong: [61, 57, 54], clue: [67, 74], success: [64, 69, 73, 76],

@@ -1,11 +1,12 @@
 KREDIT MUSIK · PETUALANGAN NUSANTARA
 
 Bungong Jeumpa · Ampar-Ampar Pisang · Yamko Rambe Yamko
-Rekaman WikiDendang oleh Duoviotheo: Viona Berlian Angita (vokal) dan Theo Wiranadi (gitar dan vokal pendukung).
+Aransemen instrumental untuk game dengan bunyi tiup, petik, kayu, dan perkusi sintetis.
+Acuan melodi adalah rekaman WikiDendang oleh Duoviotheo (Viona Berlian Angita dan Theo Wiranadi).
 https://commons.wikimedia.org/wiki/File:Aceh_-_Bungong_Jeumpa.wav
 https://commons.wikimedia.org/wiki/File:Kalimantan_Selatan_-_Ampar-Ampar_Pisang.wav
 https://commons.wikimedia.org/wiki/File:Papua_-_Yamko_Rambe_Yamko.wav
-Lisensi rekaman dan salinan MP3: CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/
+Lisensi rekaman acuan dan aransemen instrumental: CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/
 Asal budaya Yamko Rambe Yamko masih diperdebatkan.
 
 Gamelan angka 2 Kraton Ngayogyakarta
@@ -13,12 +14,8 @@ Dimainkan oleh pemusik Keraton Yogyakarta, direkam oleh RTB45.
 https://commons.wikimedia.org/wiki/File:Gamelan_angka_2_Kraton_Ngayogyakarta.ogg
 Lisensi rekaman dan salinan MP3: CC BY 4.0, https://creativecommons.org/licenses/by/4.0/
 
-Kecak Bali (Kecak - Monkey Chant)
-Rekaman pertunjukan di Paviliun Indonesia, World Expo Shanghai, oleh RTB45. Versi restorasi oleh roninpawn.
-https://freesound.org/people/RTB45/sounds/191839/
-https://freesound.org/people/roninpawn/sounds/241632/
-Lisensi: CC BY 4.0, https://creativecommons.org/licenses/by/4.0/
-Perubahan: potongan 105 detik, normalisasi kenyaringan, fade singkat, dan konversi MP3 mono.
+Senja Saling Menjawab · Bali
+Tema instrumental sintetis untuk game, terinspirasi pola ritmis Kecak.
 
-Rekaman lain dikonversi ke MP3 dan dinormalisasi. Semua rekaman diputar berulang sebagai musik latar.
+Semua rekaman MP3 dinormalisasi dan diputar berulang sebagai musik latar.
 Musik lain dan efek suara merupakan komposisi yang dibuat untuk game.

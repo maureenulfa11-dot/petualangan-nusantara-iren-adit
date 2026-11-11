@@ -379,7 +379,7 @@ test('two mobile-sized Chromium sessions finish ' + (fullJourney ? 'the six-isla
     await finishJourney(peers, output);
     const expectedRecordings = Object.values(RECORDINGS).map(recording => '/audio/' + recording.file).sort();
     for (const peer of peers) assert.deepEqual([...peer.recordings].sort(), expectedRecordings);
-    assert.ok(await a.page.evaluate(() => window.playedLoops >= 5), 'all regional recordings loop during the journey');
+    assert.ok(await a.page.evaluate(count => window.playedLoops >= count, expectedRecordings.length), 'all regional recordings loop during the journey');
   }
   for (const peer of peers) assert.deepEqual(peer.problems, []);
 });
