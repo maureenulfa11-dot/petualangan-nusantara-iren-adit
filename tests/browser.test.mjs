@@ -269,11 +269,19 @@ test('two mobile-sized Chromium sessions finish ' + (fullJourney ? 'the six-isla
   await a.page.screenshot({ path: output + '/aceh.png' });
   assert.equal(await a.page.locator('#screen').getAttribute('data-music'), 'aceh');
   await Promise.all(peers.map(peer => peer.page.waitForFunction(() => window.playedLoops > 0)));
+  const zoom = a.page.getByRole('button', { name: 'Zoom out', exact: true });
+  const zoomBox = await zoom.boundingBox();
+  assert.ok(zoomBox.width >= 44 && zoomBox.height >= 44, 'zoom has a touch target of at least 44 CSS pixels');
+  await zoom.tap();
+  assert.equal(await zoom.getAttribute('aria-pressed'), 'true');
+  assert.equal(await b.page.getByRole('button', { name: 'Zoom out', exact: true }).getAttribute('aria-pressed'), 'false');
   const stopJump = await holdTouch(contexts[0], a.page, '[data-control="jump"]');
   await delay(130);
   await stopJump();
   await waitUntil(() => b.motion.players[0][1] < 380, 'touch jump visible to remote');
   await waitUntil(a.grounded, 'touch jump lands');
+  await zoom.tap();
+  assert.equal(await zoom.getAttribute('aria-pressed'), 'false');
   for (const peer of peers) {
     for (const button of await peer.page.locator('.game-controls button').all()) {
       const box = await button.boundingBox();
@@ -379,7 +387,7 @@ test('two mobile-sized Chromium sessions finish ' + (fullJourney ? 'the six-isla
     await finishJourney(peers, output);
     const expectedRecordings = Object.values(RECORDINGS).map(recording => '/audio/' + recording.file).sort();
     for (const peer of peers) assert.deepEqual([...peer.recordings].sort(), expectedRecordings);
-    assert.ok(await a.page.evaluate(() => window.playedLoops >= 5), 'all regional recordings loop during the journey');
+    assert.ok(await a.page.evaluate(count => window.playedLoops >= count, expectedRecordings.length), 'all regional recordings loop during the journey');
   }
   for (const peer of peers) assert.deepEqual(peer.problems, []);
 });
@@ -458,7 +466,14 @@ async function finishJourney(peers, output) {
   }
   for (const peer of peers) {
     await peer.page.getByRole('heading', { name: 'Senja untuk berdua' }).waitFor();
-    for (let i = 0; i < 3; i++) await peer.page.getByRole('button', { name: /^Lanjut/ }).click();
+    const next = peer.page.getByRole('button', { name: /^Lanjut/ });
+    for (const [title, speaker] of [['Iren dan Usamah', 'Usamah'], ['Adit dan Ika', 'Ika']]) {
+      await next.click();
+      await peer.page.getByRole('heading', { name: title, exact: true }).waitFor();
+      assert.ok((await peer.page.locator('.ending-lines p').first().innerText()).startsWith(speaker + ': '));
+      assert.equal(await peer.page.locator('.ending-cast canvas[aria-label="' + speaker + '"]').count(), 1);
+    }
+    await next.click();
     await peer.page.getByRole('heading', { name: 'PETUALANGAN SELESAI!' }).waitFor();
     assert.equal(await peer.page.locator('.ending-cast canvas').count(), 4);
   }

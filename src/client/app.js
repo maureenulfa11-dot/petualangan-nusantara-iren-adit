@@ -23,7 +23,7 @@ const icon = '<img class="brand-icon" src="/art/icon.svg" alt="">';
 const avatarSize = `width="${AVATAR_WIDTH * AVATAR_PIXELS}" height="${AVATAR_HEIGHT * AVATAR_PIXELS}"`;
 const avatars = structuredClone(storeRead('nusantara-avatars-v1', DEFAULT_AVATAR));
 let preferred = storeRead('nusantara-role-v1', 0) === 1 ? 1 : 0;
-const settings = { music: .6, effects: .75, mute: false, ...storeRead('nusantara-settings-v1', {}) };
+const settings = { music: .6, effects: .75, mute: false, wideView: false, ...storeRead('nusantara-settings-v1', {}) };
 const audio = new AudioEngine(settings);
 const invite = normalizedCode(new URLSearchParams(location.search).get('room'));
 let data = null;
@@ -263,6 +263,7 @@ function showPlay() {
         <div class="game-location">${icon}<div><span id="game-location-small" class="overline"></span><b id="game-location-title"></b></div></div>
         <div class="hud-pills">
           <span class="hud-pill" id="quiz-count"></span><span class="hud-pill" id="piece-count"></span>
+          ${btn('Zoom out', 'zoom-view', 'hud-button', `aria-pressed="${settings.wideView === true}"`)}
           ${btn('Peta', 'map-open', 'hud-button')}${btn('⚙', 'settings', 'hud-button', 'aria-label="Pengaturan"')}
         </div>
       </div>
@@ -288,7 +289,7 @@ function showPlay() {
   wireTouch();
   const key = ++renderKey;
   import('./scene.js').then(({ mountGame }) => {
-    if (key === renderKey && screen === 'play') phaser = mountGame($('#phaser'), () => data);
+    if (key === renderKey && screen === 'play') phaser = mountGame($('#phaser'), () => data, () => settings.wideView === true);
   }).catch(() => showToast('Pemandangan belum berhasil dimuat. Muat ulang halaman untuk kembali ke room.', 'warn', 6000));
 }
 
@@ -718,10 +719,11 @@ function updateMapContinue() {
     (!active ? '<span class="muted">Temanmu sedang menyambung kembali.</span>' : '');
 }
 
+const ENDING_NAMES = { iren: 'Iren', adit: 'Adit', leo: 'Usamah', laras: 'Ika' };
 const ENDING = [
   { tag: 'TANJUNG SENJA', title: 'Senja untuk berdua', lines: ['Adit: Akhirnya selesai juga petualangan kita!', 'Iren: Iya! Tapi kayaknya masih ada kejutan terakhir!'], cast: ['iren', 'adit'] },
-  { tag: 'TEMUAN TAK TERDUGA', title: 'Iren dan Leo', lines: ['Leo: Aku baru tiba di Bali. Di mana tempat terbaik untuk lihat matahari terbenam?', 'Iren: Sini. Tapi tempat duduk terbaik harganya satu cerita perjalanan.', 'Leo: Setuju. Aku bawa dua cerita. Besok boleh duduk di sini lagi?', 'Iren: Boleh. Aku simpan tempatnya.'], cast: ['iren', 'leo'] },
-  { tag: 'KEJUTAN KEDUA', title: 'Adit dan Laras', lines: ['Laras: Aku dari Jawa. Boleh numpang melihat kompas yang katanya mengalahkan enam pulau?', 'Adit: Boleh. Sebagai gantinya, ajari aku tempat cari pisang goreng.', 'Laras: Besok aku antar. Mau?', 'Adit: Mau. Aku bahkan rela bagi gorengan terakhir.'], cast: ['adit', 'laras'] },
+  { tag: 'TEMUAN TAK TERDUGA', title: 'Iren dan Usamah', lines: ['Usamah: Aku baru tiba di Bali. Di mana tempat terbaik untuk lihat matahari terbenam?', 'Iren: Sini. Tapi tempat duduk terbaik harganya satu cerita perjalanan.', 'Usamah: Setuju. Aku bawa dua cerita. Besok boleh duduk di sini lagi?', 'Iren: Boleh. Aku simpan tempatnya.'], cast: ['iren', 'leo'] },
+  { tag: 'KEJUTAN KEDUA', title: 'Adit dan Ika', lines: ['Ika: Aku dari Jawa. Boleh numpang melihat kompas yang katanya mengalahkan enam pulau?', 'Adit: Boleh. Sebagai gantinya, ajari aku tempat cari pisang goreng.', 'Ika: Besok aku antar. Mau?', 'Adit: Mau. Aku bahkan rela bagi gorengan terakhir.'], cast: ['adit', 'laras'] },
   { tag: 'ENAM KEPING · SATU KISAH BARU', title: 'PETUALANGAN SELESAI!', lines: ['Berangkat berdua mencari petualangan. Pulang membawa pasangan.'], cast: ['iren', 'leo', 'adit', 'laras'] },
 ];
 
@@ -729,7 +731,7 @@ function showEnding() {
   closeModal();
   const ending = ENDING[endingIndex];
   selectScreen('ending', `<section class="ending-frame">
-    <div class="ending-art"><div class="ending-glint">✧</div><div class="ending-cast">${ending.cast.map(name => '<canvas ' + avatarSize + ' data-avatar="' + name + '" aria-label="' + name + '"></canvas>').join('')}</div></div>
+    <div class="ending-art"><div class="ending-glint">✧</div><div class="ending-cast">${ending.cast.map(id => `<canvas ${avatarSize} data-avatar="${id}" aria-label="${ENDING_NAMES[id]}"></canvas>`).join('')}</div></div>
     <div class="ending-copy"><p class="eyebrow"><span></span> ${ending.tag}</p><h1>${ending.title}</h1>
       <div class="ending-lines">${ending.lines.map(line => '<p>' + line + '</p>').join('')}</div>
       <div class="row" id="ending-actions"></div>
@@ -819,6 +821,11 @@ document.addEventListener('click', async event => {
     case 'begin': room.send({ t: 'start' }); break;
     case 'copy-invite': await copy(roomInvite()); break;
     case 'map-open': showMap(true); break;
+    case 'zoom-view':
+      settings.wideView = settings.wideView !== true;
+      actionButton.setAttribute('aria-pressed', String(settings.wideView));
+      storeWrite('nusantara-settings-v1', settings);
+      break;
     case 'sprint':
       sprint = !sprint;
       actionButton.setAttribute('aria-pressed', String(sprint));
