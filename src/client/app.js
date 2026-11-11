@@ -718,10 +718,11 @@ function updateMapContinue() {
     (!active ? '<span class="muted">Temanmu sedang menyambung kembali.</span>' : '');
 }
 
+const ENDING_NAMES = { iren: 'Iren', adit: 'Adit', leo: 'Usamah', laras: 'Ika' };
 const ENDING = [
   { tag: 'TANJUNG SENJA', title: 'Senja untuk berdua', lines: ['Adit: Akhirnya selesai juga petualangan kita!', 'Iren: Iya! Tapi kayaknya masih ada kejutan terakhir!'], cast: ['iren', 'adit'] },
-  { tag: 'TEMUAN TAK TERDUGA', title: 'Iren dan Leo', lines: ['Leo: Aku baru tiba di Bali. Di mana tempat terbaik untuk lihat matahari terbenam?', 'Iren: Sini. Tapi tempat duduk terbaik harganya satu cerita perjalanan.', 'Leo: Setuju. Aku bawa dua cerita. Besok boleh duduk di sini lagi?', 'Iren: Boleh. Aku simpan tempatnya.'], cast: ['iren', 'leo'] },
-  { tag: 'KEJUTAN KEDUA', title: 'Adit dan Laras', lines: ['Laras: Aku dari Jawa. Boleh numpang melihat kompas yang katanya mengalahkan enam pulau?', 'Adit: Boleh. Sebagai gantinya, ajari aku tempat cari pisang goreng.', 'Laras: Besok aku antar. Mau?', 'Adit: Mau. Aku bahkan rela bagi gorengan terakhir.'], cast: ['adit', 'laras'] },
+  { tag: 'TEMUAN TAK TERDUGA', title: 'Iren dan Usamah', lines: ['Usamah: Aku baru tiba di Bali. Di mana tempat terbaik untuk lihat matahari terbenam?', 'Iren: Sini. Tapi tempat duduk terbaik harganya satu cerita perjalanan.', 'Usamah: Setuju. Aku bawa dua cerita. Besok boleh duduk di sini lagi?', 'Iren: Boleh. Aku simpan tempatnya.'], cast: ['iren', 'leo'] },
+  { tag: 'KEJUTAN KEDUA', title: 'Adit dan Ika', lines: ['Ika: Aku dari Jawa. Boleh numpang melihat kompas yang katanya mengalahkan enam pulau?', 'Adit: Boleh. Sebagai gantinya, ajari aku tempat cari pisang goreng.', 'Ika: Besok aku antar. Mau?', 'Adit: Mau. Aku bahkan rela bagi gorengan terakhir.'], cast: ['adit', 'laras'] },
   { tag: 'ENAM KEPING · SATU KISAH BARU', title: 'PETUALANGAN SELESAI!', lines: ['Berangkat berdua mencari petualangan. Pulang membawa pasangan.'], cast: ['iren', 'leo', 'adit', 'laras'] },
 ];
 
@@ -729,7 +730,7 @@ function showEnding() {
   closeModal();
   const ending = ENDING[endingIndex];
   selectScreen('ending', `<section class="ending-frame">
-    <div class="ending-art"><div class="ending-glint">✧</div><div class="ending-cast">${ending.cast.map(name => '<canvas ' + avatarSize + ' data-avatar="' + name + '" aria-label="' + name + '"></canvas>').join('')}</div></div>
+    <div class="ending-art"><div class="ending-glint">✧</div><div class="ending-cast">${ending.cast.map(id => `<canvas ${avatarSize} data-avatar="${id}" aria-label="${ENDING_NAMES[id]}"></canvas>`).join('')}</div></div>
     <div class="ending-copy"><p class="eyebrow"><span></span> ${ending.tag}</p><h1>${ending.title}</h1>
       <div class="ending-lines">${ending.lines.map(line => '<p>' + line + '</p>').join('')}</div>
       <div class="row" id="ending-actions"></div>

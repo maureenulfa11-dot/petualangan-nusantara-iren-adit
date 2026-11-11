@@ -458,7 +458,14 @@ async function finishJourney(peers, output) {
   }
   for (const peer of peers) {
     await peer.page.getByRole('heading', { name: 'Senja untuk berdua' }).waitFor();
-    for (let i = 0; i < 3; i++) await peer.page.getByRole('button', { name: /^Lanjut/ }).click();
+    const next = peer.page.getByRole('button', { name: /^Lanjut/ });
+    for (const [title, speaker] of [['Iren dan Usamah', 'Usamah'], ['Adit dan Ika', 'Ika']]) {
+      await next.click();
+      await peer.page.getByRole('heading', { name: title, exact: true }).waitFor();
+      assert.ok((await peer.page.locator('.ending-lines p').first().innerText()).startsWith(speaker + ': '));
+      assert.equal(await peer.page.locator('.ending-cast canvas[aria-label="' + speaker + '"]').count(), 1);
+    }
+    await next.click();
     await peer.page.getByRole('heading', { name: 'PETUALANGAN SELESAI!' }).waitFor();
     assert.equal(await peer.page.locator('.ending-cast canvas').count(), 4);
   }
