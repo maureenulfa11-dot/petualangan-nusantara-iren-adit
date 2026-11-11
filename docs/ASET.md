@@ -4,7 +4,7 @@
 | --- | --- | --- |
 | Cuplikan papan cerita Sumatra | `public/art/referensi-sumatra.webp` | Dipotong dari gambar referensi yang disediakan pemilik proyek. Hak pada gambar tetap mengikuti kepemilikannya. |
 | Ilustrasi Iren dan Adit pada penampilan bawaan | `public/art/iren-sprites.webp`, `public/art/adit-sprites.webp`, `src/client/avatar-sprites.js` | Dua lembar 12 frame dari `Iren-Adit-Approved-Art-Source.zip` yang sudah tersedia di repository. Berkas gambar disalin tanpa perubahan. Meliputi diam, berjalan, berlari, melompat, mendarat, mendorong, mengangkat, berinteraksi, dan merayakan. |
-| Penampilan modular dan karakter penutup | `src/client/avatar.js`, `src/shared/avatar-options.js` | Rig vektor berarsir dari arsip proyek yang sama, dirender pada resolusi 2×. Penampilan yang disimpan sebelumnya tetap memakai indeks pilihan semula. |
+| Variasi penampilan dan karakter penutup | `public/art/*-sprites.webp`, `public/art/ending-companions.webp`, `src/client/avatar-sprites.js` | Lembar ilustrasi dipulihkan dari paket uji kostum proyek. Renderer menggunakan gambar per pose untuk rambut, pakaian, aksesori, dan kombinasi warna. Pilihan tersimpan memakai indeks semula. |
 | Latar, peta ilustratif, dan ikon | `public/art/`, `scripts/draw-landscapes.py` | Ilustrasi asli untuk proyek ini. Peta digunakan sebagai ilustrasi rute permainan. |
 | Musik dan efek | `src/client/audio.js` | Melodi, harmoni, ritme, dan efek asli yang disintesis oleh Web Audio. |
 | Phaser 3.90.0 | `package.json`, `package-lock.json` | [MIT](licenses/phaser-MIT.md) |
@@ -13,7 +13,7 @@
 
 ## Karakter
 
-Pemeriksaan 10 November 2026 menemukan dua sprite bawaan di arsip repository. Arsip ini belum menyediakan sprite untuk setiap kombinasi rambut, hijab, warna kulit, pakaian, dan aksesori. Kombinasi tersebut masih memakai rig modular proyek dan memerlukan tinjauan kesesuaian dengan ilustrasi yang disetujui. Frame khusus berpikir dan ekspresi salah belum tersedia pada lembar sprite bawaan.
+Paket uji kostum melengkapi dua lembar bawaan dengan 26 lembar variasi dan satu lembar untuk dua pendamping di penutup Bali. Saat beberapa pilihan dipakai bersama, renderer memadukan bagian gambar pada pose yang sama. Frame khusus berpikir dan ekspresi salah masih memakai pose diam.
 
 ## Musik
 

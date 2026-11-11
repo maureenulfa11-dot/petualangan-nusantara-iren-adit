@@ -1,5 +1,9 @@
 # Pengujian
 
+## Pemulihan aset pada 11 November 2026
+
+Build produksi lulus. Dua pengujian lokal pada Chromium Headless 153 lulus untuk sprite, pilihan penampilan, pencerminan, dan halaman potret yang bisa dimuat ulang saat luring. Pengujian karakter menjalankan 825 kasus dan memastikan setiap pilihan penampilan mengubah hasil gambar pada setiap pose yang diperiksa. Uji pada iPhone fisik masih diperlukan.
+
 ## Pemeriksaan branch 10 November 2026
 
 | Pemeriksaan akhir | Hasil |

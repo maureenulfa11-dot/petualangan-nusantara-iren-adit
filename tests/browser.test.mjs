@@ -143,7 +143,7 @@ test('approved artwork covers both characters, every action, mirrored movement a
     const { drawAvatar } = await import('/src/client/avatar.js');
     const { spriteArtReady, hasSpriteLook } = await import('/src/client/avatar-sprites.js');
     const { DEFAULT_AVATAR, SKIN, HEAD, CLOTH, OUTFIT, ACCESSORY } = await import('/src/shared/avatar-options.js');
-    await spriteArtReady;
+    const loaded = await spriteArtReady;
     const poses = [
       ['idle', 0, 0], ['walk', 0, 1], ['walk', 108, 2], ['walk', 216, 3], ['walk', 324, 2],
       ['run', 0, 6], ['run', 125, 7], ['jump', 0, 4], ['land', 0, 5], ['push', 0, 8],
@@ -155,9 +155,10 @@ test('approved artwork covers both characters, every action, mirrored movement a
     actual.height = expected.height = 364;
     const ctx = actual.getContext('2d', { willReadFrequently: true });
     const reference = expected.getContext('2d', { willReadFrequently: true });
-    const failures = [];
+    const failures = loaded.filter(result => result.status === 'rejected').map(() => 'sprite asset failed to load');
     let checked = 0;
     for (const role of [0, 1]) {
+      const defaultFrames = new Map();
       const sheet = new Image();
       sheet.src = '/art/' + ['iren', 'adit'][role] + '-sprites.webp';
       await sheet.decode();
@@ -174,6 +175,7 @@ test('approved artwork covers both characters, every action, mirrored movement a
           const wanted = reference.getImageData(0, 0, 320, 364).data;
           if (!pixels.every((value, i) => value === wanted[i])) failures.push([role, pose, ms, face].join('/'));
           if (!pixels.some((value, i) => i % 4 === 3 && value > 128)) failures.push('empty ' + pose);
+          if (face === 1) defaultFrames.set(frame, pixels);
           checked++;
         }
       }
@@ -181,10 +183,14 @@ test('approved artwork covers both characters, every action, mirrored movement a
       for (const [field, options] of Object.entries(choices)) {
         for (let choice = 0; choice < options.length; choice++) {
           const look = { ...DEFAULT_AVATAR[role], [field]: choice };
-          for (const [pose, ms] of poses) {
+          for (const [pose, ms, frame] of poses) {
             drawAvatar(ctx, look, role, pose, ms);
-            if (!ctx.getImageData(0, 0, 320, 364).data.some((value, i) => i % 4 === 3 && value > 128)) {
+            const pixels = ctx.getImageData(0, 0, 320, 364).data;
+            if (!pixels.some((value, i) => i % 4 === 3 && value > 128)) {
               failures.push('custom ' + [role, field, choice, pose].join('/'));
+            }
+            if (choice !== DEFAULT_AVATAR[role][field] && pixels.every((value, i) => value === defaultFrames.get(frame)[i])) {
+              failures.push('option had no effect ' + [role, field, choice, pose].join('/'));
             }
             checked++;
           }

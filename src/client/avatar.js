@@ -1,5 +1,5 @@
 import { SKIN, CLOTH } from '../shared/avatar-options.js';
-import { drawSpriteAvatar, hasSpriteLook } from './avatar-sprites.js';
+import { drawSpriteAvatar, drawSpriteCompanion, hasSpriteLook } from './avatar-sprites.js';
 
 export const AVATAR_WIDTH = 160;
 export const AVATAR_HEIGHT = 182;
@@ -121,8 +121,9 @@ function fringe(ctx, role, head, hair) {
 }
 
 export function drawAvatar(ctx, look, role, pose = 'idle', ms = 0, face = 1, variation = '') {
+  if (variation && drawSpriteCompanion(ctx, variation, pose)) return;
   if (hasSpriteLook(look, role, variation)) {
-    drawSpriteAvatar(ctx, role, pose, ms, face);
+    drawSpriteAvatar(ctx, role, pose, ms, face, look);
     return;
   }
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);

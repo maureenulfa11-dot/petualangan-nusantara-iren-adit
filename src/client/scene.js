@@ -5,7 +5,6 @@ import {
   stageOf, stageQuestionStart, platformsFor, hasPit, within,
 } from '../shared/chapters.js';
 import { drawAvatar, AVATAR_WIDTH, AVATAR_HEIGHT, AVATAR_PIXELS } from './avatar.js';
-import { hasSpriteLook } from './avatar-sprites.js';
 
 const VIEW_W = 960;
 const VIEW_H = 480;
@@ -42,7 +41,7 @@ class AdventureScene extends Phaser.Scene {
       const canvas = this.textures.createCanvas('hiker-' + i, AVATAR_WIDTH * AVATAR_PIXELS, AVATAR_HEIGHT * AVATAR_PIXELS);
       return {
         canvas,
-        image: this.add.image(0, 0, canvas.key).setScale(HERO_SCALE / AVATAR_PIXELS).setOrigin(.5, .905).setDepth(12),
+        image: this.add.image(0, 0, canvas.key).setScale(HERO_SCALE / AVATAR_PIXELS).setOrigin(.5, .975).setDepth(12),
         name: this.add.text(0, 0, '', { ...text, fontSize: '14px' }).setOrigin(.5).setDepth(14),
       };
     });
@@ -323,7 +322,6 @@ class AdventureScene extends Phaser.Scene {
       if (!member) continue;
       const fx = Math.abs(x - h.image.x) > 185 ? 1 : smooth;
       h.image.setPosition(Phaser.Math.Linear(h.image.x, x, fx), Phaser.Math.Linear(h.image.y, y, fx));
-      h.image.setOrigin(.5, hasSpriteLook(member.avatar, member.role) ? .975 : .905);
       h.name.setText(CAST[member.role] + (slot === self ? ' ◇' : '')).setPosition(h.image.x, h.image.y - AVATAR_HEIGHT * HERO_SCALE);
       const feedback = world.feedback && Date.now() - world.feedback.at < 1450 && world.feedback.role === slot ? world.feedback : null;
       const expression = feedback ? (feedback.ok ? 'correct' : 'wrong')
